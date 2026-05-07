@@ -1,0 +1,47 @@
+{
+  "total_embeddings": 10548,
+  "total_sources": 8,
+  "last_updated": "2026-04-23T18:18:23.346534",
+  "sources": {
+    "blocked_C11": {
+      "count": 2,
+      "model": "text-embedding-v3",
+      "file": "blocked_C11.json"
+    },
+    "blocked_C15": {
+      "count": 1,
+      "model": "text-embedding-v3",
+      "file": "blocked_C15.json"
+    },
+    "question_bank_C35": {
+      "count": 4675,
+      "model": "text-embedding-v3",
+      "file": "question_bank_C35.json"
+    },
+    "question_bank_C36": {
+      "count": 695,
+      "model": "text-embedding-v3",
+      "file": "question_bank_C36.json"
+    },
+    "question_bank_C37": {
+      "count": 957,
+      "model": "text-embedding-v3",
+      "file": "question_bank_C37.json"
+    },
+    "question_bank_C38": {
+      "count": 388,
+      "model": "text-embedding-v3",
+      "file": "question_bank_C38.json"
+    },
+    "question_bank_C39": {
+      "count": 3802,
+      "model": "text-embedding-v3",
+      "file": "question_bank_C39.json"
+    },
+    "user_query": {
+      "count": 28,
+      "model": "text-embedding-v3",
+      "file": "user_query.json"
+    }
+  }
+}

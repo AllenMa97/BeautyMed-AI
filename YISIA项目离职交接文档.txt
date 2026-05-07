@@ -1,0 +1,1044 @@
+================================================================================
+                                离职交接文档
+================================================================================
+
+项目名称：YISIA（Lansee Chatbot）—— 医美领域 AI 智能对话系统
+开发者：马赫·马智勇（大模型算法工程师）
+创建日期：2026-04-16
+交接日期：2026-05-07
+项目路径：云效git仓库（ai-skin-miniprogram/ai-skin-algorithm-ECS-for-Algorithm-Filing）
+
+================================================================================
+一、项目概述
+================================================================================
+
+YISIA 是一个面向医美行业的 AI 智能对话系统，定位为用户的"美丽闺蜜"。
+系统集成了 RAG（检索增强生成）、知识图谱、内容审核、多语言国际化、
+用户画像、自进化等高级功能，采用微服务架构，由三个独立服务组成。
+
+1.1 系统架构总览
+--------------------------------------------------------------------------------
+
+系统由三个微服务组成，部署在同一台 Linux 服务器上，通过 HTTP 内部通信：
+
+  服务一：algorithm_services（核心算法服务）
+    技术栈：Python / FastAPI / Uvicorn
+    端口：6732
+    systemd 服务名：yisia-algorithm
+    职责：核心算法服务，负责对话理解、功能规划、内容审核、LLM 调用等全部 AI 能力
+
+  服务二：knowledge_base_service（知识库服务）
+    技术栈：Python / FastAPI / Uvicorn
+    端口：8002
+    部署方式：手动管理（无 systemd 服务）
+    职责：知识库 RAG 检索、向量索引（HNSW）、知识图谱、重排序
+
+  服务三：frontend_services（前端静态服务）
+    技术栈：Node.js / Express
+    端口：3000
+    systemd 服务名：yisia-frontend
+    职责：SPA 单页应用、用户认证、流式对话界面
+
+1.2 请求处理流程
+--------------------------------------------------------------------------------
+
+用户输入
+  → 步骤1：快速短路检测（词表匹配简单问候/确认/感谢）
+  → 步骤2：路由决策（判断 need_plan / need_search，同时异步并行启动内容违规检测）
+  → 若 need_plan=False 则直接走 free_chat 兜底
+  → 若 need_plan=True 则进入步骤3：功能规划（决定调用哪些功能模块）
+  → 步骤4：执行功能（按顺序执行规划的功能，结果存入 session）
+  → 步骤5：自动选择 Chat 方式（有知识检索结果用 knowledge_chat，无结果用 free_chat）
+  → 步骤6：SSE 流式输出返回结果
+
+================================================================================
+二、项目目录结构
+================================================================================
+
+2.1 根目录结构
+--------------------------------------------------------------------------------
+
+:\lansee_chatbot_ECS\
+├── algorithm_services\          # 后端算法服务（Python/FastAPI，端口 6732）
+├── frontend_services\           # 前端服务（Node.js/Express，端口 3000）
+├── knowledge_base_service\      # 知识库服务（Python/FastAPI，端口 8002）
+└── aliyun.key                   # 阿里云 RSA 私钥文件（⚠️ 安全风险）
+
+2.2 algorithm_services 目录结构
+--------------------------------------------------------------------------------
+
+algorithm_services\
+├── main.py                      # FastAPI 入口文件（端口 6732）
+├── fastapi_service.sh           # systemd 服务管理脚本
+├── admin\
+│   └── dashboard.html           # 监控面板页面
+├── api\
+│   ├── routers\
+│   │   ├── main_router.py       # 统一入口路由 /api/v1/entrance
+│   │   ├── metrics_router.py    # 监控指标路由
+│   │   └── feature_routers\     # 功能路由模块（14个路由文件）
+│   │       ├── content_moderation_router.py
+│   │       ├── dialog_summary_router.py
+│   │       ├── entity_relation_extraction_router.py
+│   │       ├── free_chat_router.py
+│   │       ├── function_planner_router.py
+│   │       ├── intent_clarify_router.py
+│   │       ├── intent_recognize_router.py
+│   │       ├── language_setting_router.py
+│   │       ├── llm_web_search_router.py
+│   │       ├── text_summary_router.py
+│   │       ├── title_generation_router.py
+│   │       ├── user_knowledge_graph_router.py
+│   │       └── user_style_router.py
+│   └── schemas\
+│       ├── base_schemas.py
+│       └── schema_kit.py
+├── core\
+│   ├── managers\                # 管理器（知识存储、指标、截图、自进化）
+│   │   ├── knowledge_store.py
+│   │   ├── metrics_manager.py
+│   │   ├── metrics_models.py
+│   │   ├── screenshot_manager.py
+│   │   └── self_evolution_manager.py
+│   ├── models\                  # 模型（embedding）
+│   │   └── embedding_model.py
+│   ├── moderation\              # 内容审核模块
+│   │   ├── api.py
+│   │   ├── blocked_query_storage.py
+│   │   ├── embedding_storage.py
+│   │   └── keyword_detector.py
+│   ├── prompts\                 # Prompt 模板
+│   │   └── features\
+│   │       └── i18n_prompt.py
+│   ├── services\                # 核心服务层（30+ 服务文件）
+│   │   ├── base_service.py
+│   │   ├── system_initializer.py
+│   │   ├── knowledge_base_client.py
+│   │   ├── llm_web_search_service.py
+│   │   ├── jina_reader_service.py
+│   │   ├── mcp_executer_service.py
+│   │   ├── self_evolution_service.py
+│   │   ├── fashion_portal_service.py
+│   │   ├── time_location_service.py
+│   │   └── feature_services\    # 功能服务（30+ 文件）
+│   └── tools\
+│       └── tool_registry.py     # 工具注册表
+├── config\                      # 配置文件目录（5组 .env 配置）
+│   ├── KNOWLEDGE.env / .env.example
+│   ├── LLM_API.env / .env.example
+│   ├── MODERATION.env / .env.example
+│   ├── SCHEDULE.env / .env.example
+│   └── SESSION.env / .env.example
+├── data\                        # 数据文件
+│   ├── blocked_queries\         # 拦截查询数据
+│   ├── embeddings\              # 向量嵌入数据
+│   ├── knowledge\               # 知识数据（行为/特征/交互）
+│   ├── question_bank_json\      # 题库数据（C35-C39）
+│   ├── blocklist.txt
+│   ├── products.txt
+│   ├── session_store.py
+│   └── vector_store.py
+├── large_model\
+│   ├── llm_factory.py           # LLM 工厂（多服务商、多Key、模型回退）
+│   └── lvlm_factory.py          # 视觉语言模型工厂
+├── session\
+│   └── session_factory.py       # 会话工厂
+└── utils\                       # 工具函数
+    ├── auth.py
+    ├── i18n.py
+    ├── logger.py
+    ├── pattern.py
+    ├── security.py
+    ├── time_location.py
+    ├── trending_topics.py
+    └── performance_monitor.py
+
+2.3 knowledge_base_service 目录结构
+--------------------------------------------------------------------------------
+
+knowledge_base_service\
+├── main.py                      # FastAPI 入口文件（端口 8002）
+├── build_knowledge_graph.py     # 知识图谱构建脚本
+├── chunk_documents.py           # 文档分块脚本
+├── api\
+│   ├── routers\
+│   │   ├── graph_rag_router.py
+│   │   ├── graph_visualization_router.py
+│   │   ├── knowledge_router.py
+│   │   ├── main_router.py
+│   │   └── rag_router.py
+│   └── schemas\
+│       ├── knowledge_schemas.py
+│       └── rag_schemas.py
+├── core\
+│   ├── augmentation\            # 上下文增强（去重、token预算）
+│   ├── cache\                   # 查询缓存
+│   ├── chunking\                # 文档分块系统（HybridChunker）
+│   ├── llm_prompts\             # RAG Prompt（15+ 模板）
+│   ├── processors\              # 处理器（OCR、爬虫、搜索引擎、代理）
+│   ├── rerank\                  # 重排序（混合重排、LLM重排）
+│   ├── retrieval\               # 检索（BM25、实体检索）
+│   ├── services\                # 知识服务（embedding、实体匹配）
+│   ├── vector_store\            # 向量存储（HNSW ANN 索引）
+│   ├── llm_client.py
+│   ├── content_analyzer.py
+│   ├── knowledge_collection.py
+│   ├── layered_knowledge_manager.py
+│   └── news_search_service.py
+├── config\
+│   ├── env / env.example        # 环境变量配置
+│   ├── settings.py              # 配置加载器
+│   └── database_config.json     # 数据库配置
+├── data\
+│   ├── chunk_embeddings\        # 向量索引数据（JSON 格式）
+│   ├── chunks\                  # 分块数据（250个产品 x 2 chunks = 500 文件）
+│   ├── INDEX_README.md
+│   └── brand_group_mapping.json
+└── scripts\                     # 脚本工具
+
+2.4 frontend_services 目录结构
+--------------------------------------------------------------------------------
+
+frontend_services\
+├── index.html                   # SPA 单页应用入口（2600+ 行，含内联 CSS）
+├── server.js                    # Express 静态文件服务器（端口 3000）
+├── package.json                 # Node.js 依赖
+├── package-lock.json
+├── README.md
+├── start_frontend_services.bat  # Windows 启动脚本
+├── start_frontend_services.sh   # Linux systemd 管理脚本
+└── assets\
+    ├── css\
+    │   ├── base.css             # 基础重置样式
+    │   ├── theme.css            # 主题 CSS 变量（4种主题）
+    │   ├── chat.css             # 聊天页面布局样式
+    │   └── login.css            # 登录/注册页面样式
+    ├── images\
+    │   └── carousel\            # 轮播图资源（5张 PNG）
+    └── js\
+        ├── api\
+        │   ├── authApi.js       # 认证 API（发送验证码、登录、注册）
+        │   └── chatApi.js       # 聊天 API（SSE 流式消息、文件上传）
+        ├── config\
+        │   └── appConfig.js     # 全局配置（API地址、存储键名、认证路径）
+        ├── core\
+        │   ├── authManager.js   # 认证管理器（Token/用户信息）
+        │   └── stateManager.js  # 简易状态管理器
+        ├── utils\
+        │   ├── chatUtils.js     # 聊天上下文生成工具
+        │   ├── dateFormat.js    # 时间格式化工具
+        │   ├── debounce.js      # 防抖 + 防重复执行工具
+        │   ├── domUtils.js      # DOM 操作工具类
+        │   └── idUtils.js       # ID 生成/管理工具
+        └── views\
+            ├── chatView.js      # 聊天主视图逻辑（核心文件，约1934行）
+            └── loginView.js     # 登录/注册视图逻辑
+
+================================================================================
+三、技术栈详情
+================================================================================
+
+3.1 后端技术栈
+--------------------------------------------------------------------------------
+
+  语言：Python 3.11 / 3.13
+  Web 框架：FastAPI（异步 Web 框架）
+  ASGI 服务器：Uvicorn
+  HTTP 客户端：httpx（异步）+ requests（同步）
+  数据验证：Pydantic
+  环境变量：python-dotenv
+  LLM 服务商：阿里云 DashScope（通义千问系列）
+  Embedding：text-embedding-v3（1024 维向量）
+  向量索引：HNSW（自实现，M=16, ef_construction=200, ef_search=50）
+  部署：Linux systemd 守护进程
+
+3.2 前端技术栈
+--------------------------------------------------------------------------------
+
+  语言：JavaScript（ES6+），原生 JS，无框架
+  Web 服务器：Node.js + Express 4.18.2
+  开发工具：nodemon 3.0.1
+  Markdown 渲染：marked.js 12.0.1（CDN 引入）
+  代码高亮：highlight.js 11.9.0（CDN 引入）
+  架构：SPA（单页应用），对象字面量模式
+  通信协议：SSE（Server-Sent Events）流式聊天
+  UI 特性：6 种主题、20+ 种语言、响应式布局、暗色模式
+
+3.3 AI/算法技术栈
+--------------------------------------------------------------------------------
+
+  RAG：自研 RAG 系统（向量检索 + BM25 + 实体检索 + 知识图谱）
+  知识图谱：自研（实体关系抽取 + 图谱构建 + 图谱增强 RAG）
+  文档分块：HybridChunker（语义相似度分块 + 父子分块策略）
+  内容审核：多层审核（题库匹配 C35-C39 + LLM 检测 C41 + 历史违规库 C42）
+  国际化：BCP 47 标准，支持 20+ 语言自动检测
+  用户画像：用户风格学习、知识图谱、记忆挖掘
+
+================================================================================
+四、核心 API 接口
+================================================================================
+
+4.1 algorithm_services API（端口 6732，root_path=/chat）
+--------------------------------------------------------------------------------
+
+  统一入口：POST /api/v1/entrance
+    说明：聊天机器人主接口（SSE 流式）
+    请求体：
+    {
+      "session_id": "996",
+      "user_id": "996",
+      "lang": "zh-CN",
+      "stream_flag": true,
+      "user_input": "用户输入内容",
+      "context": "[{\"user\":\"输入1\",\"response\":\"回答1\"}]",
+      "minor_mode": false,
+      "personalize": true
+    }
+    SSE 响应码：
+      102 - 中间过程（AI 思考中）
+      200 - 最终结果
+      300 - 流式打字（当前忽略）
+      403 - 违规内容拦截
+      500 - 错误
+
+  功能路由（14个）：
+    POST /api/v1/dialog-summary/*          # 对话摘要
+    POST /api/v1/entity-relation-extraction/*  # 实体关系联合抽取
+    POST /api/v1/free-chat/*               # 闲聊
+    POST /api/v1/function-planner/*        # 功能规划器
+    POST /api/v1/intent-clarify/*          # 意图澄清
+    POST /api/v1/intent-recognize/*        # 意图识别
+    POST /api/v1/text-summary/*            # 文本摘要
+    POST /api/v1/title-generation/*        # 标题生成
+    POST /api/v1/content-moderation/*      # 内容审核
+    POST /api/v1/llm-web-search/*          # LLM 联网搜索
+    POST /api/v1/user-style/*              # 用户风格学习
+    POST /api/v1/user-knowledge-graph/*    # 用户知识图谱
+
+  监控指标：
+    GET  /api/v1/metrics/hourly            # 小时级统计
+    GET  /api/v1/metrics/realtime          # 实时统计
+    GET  /api/v1/metrics/daily/{days}      # N 天统计
+    GET  /api/v1/metrics/model-key/{days}  # 模型和 Key 使用统计
+
+  认证代理（转发到 localhost:8123）：
+    ALL  /api/auth/{path}                  # 认证后端代理
+
+  系统端点：
+    GET  /health                           # 健康检查
+    GET  /admin                            # 监控仪表盘页面
+    GET  /api/docs                         # Swagger API 文档
+
+4.2 knowledge_base_service API（端口 8002）
+--------------------------------------------------------------------------------
+
+  知识搜索：
+    POST /api/v1/knowledge/search          # 知识搜索（hybrid/vector/graph/keyword）
+    GET  /api/v1/knowledge/list_all        # 分页获取全量数据
+    GET  /api/v1/knowledge/list_products   # 获取全部产品
+    GET  /api/v1/knowledge/list_entries    # 获取全部知识条目
+    GET  /api/v1/knowledge/product/{id}    # 获取单个产品
+    GET  /api/v1/knowledge/entry/{id}      # 获取单个知识条目
+    POST /api/v1/knowledge/add_product     # 添加产品
+    POST /api/v1/knowledge/add_knowledge   # 添加知识条目
+    POST /api/v1/knowledge/import          # 批量导入（JSON/CSV/MD）
+    PUT  /api/v1/knowledge/product/{id}    # 更新产品
+    DELETE /api/v1/knowledge/product/{id}  # 删除产品
+    PUT  /api/v1/knowledge/entry/{id}      # 更新知识条目
+    DELETE /api/v1/knowledge/entry/{id}    # 删除知识条目
+    GET  /api/v1/knowledge/index_status    # 向量索引状态
+    GET  /api/v1/knowledge/cache_stats     # 缓存统计
+    POST /api/v1/knowledge/clear_cache     # 清除缓存
+
+  RAG 检索：
+    POST /api/v1/rag/query                 # RAG 统一查询
+    POST /api/v1/rag/documents             # 添加文档
+    GET  /api/v1/rag/stats                 # 知识库统计
+    POST /api/v1/rag/build-ann-index       # 构建 ANN 索引
+    GET  /api/v1/rag/ann-stats             # ANN 索引统计
+
+  知识图谱：
+    POST /api/v1/graph/*                   # 图谱相关路由
+
+  系统端点：
+    GET  /health                           # 健康检查
+    GET  /docs                             # Swagger API 文档
+    GET  /knowledge                        # 知识管理页面
+    GET  /graph                            # 知识图谱可视化页面
+
+4.3 frontend_services API（端口 3000）
+--------------------------------------------------------------------------------
+
+  静态文件服务：
+    GET  /chat                             # 前端根目录
+    GET  /chat*                            # SPA 兜底路由
+
+  前端 API 配置（appConfig.js）：
+    API_BASE_URL: window.location.origin + "/chat"
+    CHAT_API_PATH: "/api/v1/entrance"
+    AUTH.SEND_CODE_PATH: "/api/auth/sms/send"
+    AUTH.LOGIN_PATH: "/api/auth/sms/login"
+
+================================================================================
+五、配置文件说明
+================================================================================
+
+5.1 algorithm_services 配置（5组 .env 文件）
+--------------------------------------------------------------------------------
+
+  文件路径：algorithm_services/config/
+
+  【LLM_API.env】LLM 服务商配置
+    LLM_DEFAULT_PROVIDER=aliyun
+    ALIYUN_API_BASE=https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+    ALIYUN_API_KEY=sk-ea096597b73444198ba32d267f7d5fc2
+    ALIYUN_DEFAULT_MODEL=qwen-plus
+    ALIYUN_MODELS={"qwen-flash":"qwen-flash","qwen-turbo":"qwen-turbo",...}
+    ALIYUN_FALLBACK_MODELS=["qwen-flash","qwen-plus","qwen-turbo"]
+    AIPOSIT_GAGALIN_DELICK_CONSTANT=0
+
+  【SESSION.env】会话配置
+    THREAD_POOL_MAX_WORKERS=10
+    SESSION_STORAGE_PATH="./local_session_data"
+    MAX_LOOP=2
+    BACKEND_DB_API="http://backend-api/sessions/"
+    KNOWLEDGE_BASE_SERVICE_URL=http://101.37.209.109:8002
+
+  【KNOWLEDGE.env】知识库配置
+    KNOWLEDGE_BASE_SERVICE_URL=http://101.37.209.109:8002
+    KNOWLEDGE_DEFAULT_SEARCH_MODE=hybrid
+    KNOWLEDGE_DEFAULT_TOP_K=10
+    KNOWLEDGE_DEFAULT_THRESHOLD=0.3
+    KNOWLEDGE_DEFAULT_SEARCH_TYPE=all
+
+  【MODERATION.env】内容审核配置
+    QUESTION_BANK_THRESHOLD_C35=0.85
+    QUESTION_BANK_THRESHOLD_C36=0.85
+    QUESTION_BANK_THRESHOLD_C37=0.85
+    QUESTION_BANK_THRESHOLD_C38=0.85
+    QUESTION_BANK_THRESHOLD_C39=0.85
+    LLM_DETECTION_THRESHOLD=0.85
+    BLOCKED_HISTORY_THRESHOLD=0.90
+
+  【SCHEDULE.env】定时任务配置
+    API_KEY_CHECK_INTERVAL=14400          # API Key 检测间隔（4小时）
+    CONTENT_UPDATE_INTERVAL=14400         # 内容更新间隔（4小时）
+    SIMULATION_CHECK_INTERVAL=1800        # 模拟用户生成检查间隔（30分钟）
+    INTENT_CACHE_TTL=3600                 # 意图缓存 TTL（1小时）
+    TRENDING_CACHE_TTL=1800               # 热搜缓存 TTL（30分钟）
+    DIALOG_SUMMARY_TIME_THRESHOLD=300     # 对话摘要时间阈值（5分钟）
+    USER_PROFILE_UPDATE_INTERVAL=300      # 用户画像更新间隔（5分钟）
+    MEMORY_MINING_INTERVAL=7200           # 用户记忆挖掘间隔（2小时）
+
+5.2 knowledge_base_service 配置
+--------------------------------------------------------------------------------
+
+  文件路径：knowledge_base_service/config/
+
+  【env】主配置
+    DASHSCOPE_API_KEY=sk-ea096597b73444198ba32d267f7d5fc2
+    LLM_API_BASE=https://dashscope.aliyuncs.com/compatible-mode/v1
+    CHUNK_SIMILARITY_THRESHOLD=0.6
+    CHUNK_PARENT_MAX_TOKENS=512
+    CHUNK_CHILD_MAX_TOKENS=128
+    CHUNK_MIN_TOKENS=50
+    CHUNK_ENABLE_PARENT_CHILD=True
+    EMBEDDING_MODEL=text-embedding-v3
+    EMBEDDING_DIMENSION=1024
+    EMBEDDING_API_BASE=https://dashscope.aliyuncs.com/compatible-mode/v1
+    EMBEDDING_BATCH_SIZE=10
+    HNSW_M=16
+    HNSW_EF_CONSTRUCTION=200
+    HNSW_EF_SEARCH=50
+    ENABLE_LLM_RERANKER=True
+    LLM_RERANKER_MODEL=qwen-plus
+    LLM_RERANKER_BATCH_SIZE=10
+    SERVICE_PORT=8002
+    LOG_LEVEL=INFO
+    DEBUG=False
+
+  【settings.py】配置加载器（Python 函数式配置读取）
+  【database_config.json】数据库配置（当前数据库=full）
+
+5.3 前端配置
+--------------------------------------------------------------------------------
+
+  文件路径：frontend_services/assets/js/config/appConfig.js
+
+  const AppConfig = {
+    API_BASE_URL: window.location.origin + "/chat",
+    CHAT_API_PATH: "/api/v1/entrance",
+    DEBOUNCE_TIME: 500,
+    EMOTICONS: ["😊", "😂", "🤔", "👍", "👋", "😎", "🤩", "💡"],
+    STORAGE_KEYS: {
+      DARK_MODE: "darkMode",
+      MESSAGE_HISTORY: "messageHistory",
+      API_CONFIG: "apiConfig",
+      ACCESS_TOKEN: "accessToken",
+      USER_INFO: "userInfo"
+    },
+    AUTH: {
+      SEND_CODE_PATH: "/api/auth/sms/send",
+      LOGIN_PATH: "/api/auth/sms/login"
+    }
+  };
+
+================================================================================
+六、部署与运维
+================================================================================
+
+6.1 部署环境
+--------------------------------------------------------------------------------
+
+  操作系统：Linux（CentOS/Ubuntu）
+  部署方式：systemd 守护进程 + 手动管理
+  Python 版本：3.11 / 3.13
+  Python 虚拟环境：/root/YISIA_Algorithm/venv
+  项目部署路径：/root/YISIA_Algorithm/
+  Node.js 版本：需安装 Node.js（推荐 v18+）
+
+6.2 algorithm_services 部署
+--------------------------------------------------------------------------------
+
+  管理脚本：algorithm_services/fastapi_service.sh
+
+  安装服务（首次部署）：
+    sudo ./fastapi_service.sh install
+
+  启动服务：
+    sudo ./fastapi_service.sh start
+
+  停止服务：
+    sudo ./fastapi_service.sh stop
+
+  重启服务：
+    sudo ./fastapi_service.sh restart
+
+  查看状态：
+    sudo ./fastapi_service.sh status
+
+  卸载服务：
+    sudo ./fastapi_service.sh uninstall
+
+  调试模式（前台运行，不需要 sudo）：
+    ./fastapi_service.sh debug
+
+  systemd 服务配置（自动生成）：
+    服务文件：/etc/systemd/system/yisia-algorithm.service
+    工作目录：/root/YISIA_Algorithm/algorithm_services
+    启动命令：python -m uvicorn main:app --host 0.0.0.0 --port 6732
+    环境变量：PYTHONPATH=/root/YISIA_Algorithm
+    日志输出：logs/algorithm_service.log（标准输出）
+             logs/algorithm_service_err.log（错误输出）
+    重启策略：Restart=always, RestartSec=5
+
+6.3 frontend_services 部署
+--------------------------------------------------------------------------------
+
+  管理脚本：frontend_services/start_frontend_services.sh
+
+  安装服务（首次部署）：
+    sudo ./start_frontend_services.sh install
+
+  启动服务：
+    sudo ./start_frontend_services.sh start
+
+  停止服务：
+    sudo ./start_frontend_services.sh stop
+
+  重启服务：
+    sudo ./start_frontend_services.sh restart
+
+  查看状态：
+    sudo ./start_frontend_services.sh status
+
+  卸载服务：
+    sudo ./start_frontend_services.sh uninstall
+
+  Windows 开发环境：
+    双击 start_frontend_services.bat 或在命令行运行
+
+  systemd 服务配置（自动生成）：
+    服务文件：/etc/systemd/system/yisia-frontend.service
+    工作目录：/root/YISIA_Algorithm/frontend_services
+    启动命令：node server.js
+    环境变量：NODE_ENV=production
+    重启策略：Restart=always, RestartSec=3
+
+6.4 knowledge_base_service 部署
+--------------------------------------------------------------------------------
+
+  部署方式：手动管理（无 systemd 服务脚本）
+
+  启动命令：
+    cd /root/YISIA_Algorithm/knowledge_base_service
+    python main.py
+    # 或
+    uvicorn main:app --host 0.0.0.0 --port 8002
+
+  建议：生产环境应为其创建 systemd 服务，参考 algorithm_services 的脚本格式
+
+6.5 依赖安装
+--------------------------------------------------------------------------------
+
+  Python 依赖（algorithm_services & knowledge_base_service）：
+    ⚠️ 项目没有 requirements.txt 文件，需手动安装
+    推荐依赖列表：
+      pip install fastapi uvicorn httpx requests pydantic python-dotenv numpy
+
+  Node.js 依赖（frontend_services）：
+    cd frontend_services
+    npm install
+    # 依赖：express@^4.18.2, nodemon@^3.0.1（开发依赖）
+
+6.6 日志管理
+--------------------------------------------------------------------------------
+
+  algorithm_services 日志：
+    日志文件：algorithm_services/logs/YISIA.log
+    日志级别：控制台 INFO，文件 DEBUG
+    日志格式：2026-05-07 12:00:00 - YISIA - INFO - [session:xxx] [user:xxx] 内容
+    日志切分：每天午夜切分，保留 7 天
+    日志系统：全局单例 Logger（YISIA），通过 ContextVar 关联 session_id 和 user_id
+
+  algorithm_services 服务日志：
+    标准输出：logs/algorithm_service.log
+    错误输出：logs/algorithm_service_err.log
+
+  knowledge_base_service 日志：
+    日志级别：INFO（可通过 env 文件修改）
+
+================================================================================
+七、数据存储说明
+================================================================================
+
+7.1 存储方式总览
+--------------------------------------------------------------------------------
+
+  项目不使用传统关系型数据库，全部使用 JSON 文件存储。
+
+7.2 algorithm_services 数据存储
+--------------------------------------------------------------------------------
+
+  会话存储：
+    位置：algorithm_services/data/session_store.py
+    方式：三级缓存（内存字典 > pickle 文件 > 数据库接口预留）
+    配置：SESSION_STORAGE_PATH="./local_session_data"
+
+  向量存储：
+    位置：algorithm_services/data/vector_store.py
+    方式：本地向量存储
+
+  嵌入数据：
+    位置：algorithm_services/data/embeddings/
+    格式：JSON 文件（blocked_C10.json, blocked_C11.json, question_bank_*.json 等）
+
+  拦截查询：
+    位置：algorithm_services/data/blocked_queries/
+    格式：JSON 文件（C10.json, C11.json, C15.json, manifest.json）
+
+  题库数据：
+    位置：algorithm_services/data/question_bank_json/
+    格式：JSON 文件（C35.json ~ C39.json, 拒答题.json, 涉准确性.json）
+
+  知识数据：
+    位置：algorithm_services/data/knowledge/
+    格式：JSON 文件（behavior.json, feature.json, interaction.json）
+
+7.3 knowledge_base_service 数据存储
+--------------------------------------------------------------------------------
+
+  向量索引：
+    位置：knowledge_base_service/data/chunk_embeddings/
+    格式：JSON 文件（vectors.json, id_list.json, metadata.json, contents.json）
+    算法：HNSW（M=16, ef_construction=200, ef_search=50）
+    维度：1024 维（text-embedding-v3）
+
+  分块数据：
+    位置：knowledge_base_service/data/chunks/
+    格式：JSON 文件（250 个产品 x 2 chunks = 500 个文件）
+    命名：product_{id}_chunk_{index}.json
+
+  品牌集团映射：
+    位置：knowledge_base_service/data/brand_group_mapping.json
+
+  查询缓存：
+    位置：knowledge_base_service/data/query_cache/
+
+================================================================================
+八、第三方服务集成
+================================================================================
+
+8.1 LLM/AI 服务（核心集成）
+--------------------------------------------------------------------------------
+
+  服务商：阿里云 DashScope（通义千问）
+  API 地址：https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+  API Key：sk-ea096597b73444198ba32d267f7d5fc2（LLM_API.env）
+
+  可用模型（12个）：
+    qwen-flash, qwen-turbo, qwen-plus, qwen-long
+    qwen-vl-plus, qwen-vl-max-latest
+    qwen2.5-7b-instruct, qwen2.5-14b-instruct
+    qwen-coder-plus-latest, qwen-coder-turbo-0919
+    qwen-math-plus, qwen-math-turbo
+
+  默认模型：qwen-plus
+  备用模型：qwen-flash, qwen-plus, qwen-turbo
+
+  容错机制：
+    - 多 API Key 轮转（支持最多 9 个 Key，自动切换）
+    - 模型回退（配额不足时自动切换备用模型）
+    - 供应商回退（主供应商失败时切换到备用供应商）
+    - 启动时 Key 健康检测（并行检测所有 Key 的可用性）
+    - 阿里云 Context Cache（cache_control 优化重复 system_prompt 的 token 消耗）
+
+  Embedding 服务：
+    模型：text-embedding-v3
+    维度：1024
+    批量大小：10（阿里云限制）
+
+8.2 Jina Reader（网页内容读取）
+--------------------------------------------------------------------------------
+
+  API 地址：r.jina.ai
+  功能：读取任意网页内容
+  特性：
+    - 支持多个备用读取方案（HTTP/HTTPS/Direct）
+    - 内置 15+ 中文新闻网站配置（微博、知乎、百度、抖音等）
+    - 缓存机制（TTL 30 分钟）
+    - 关键词提取（jieba）
+
+8.3 认证后端服务
+--------------------------------------------------------------------------------
+
+  地址：http://localhost:8123
+  功能：用户认证（短信验证码登录/注册）
+  代理路径：/api/auth/{path} → /internal-api/auth/{path}
+  认证方式：JWT Bearer Token
+
+8.4 内容审核服务
+--------------------------------------------------------------------------------
+
+  关键词检测：
+    7 类违规内容（政治、暴力、色情、赌博、毒品、仇恨、虚假信息）
+    多线程并行检测
+
+  LLM 检测（C41）：
+    使用 qwen-flash 模型对 7 类内容进行语义级审核
+    阈值：0.85
+
+  题库匹配（C35-C39）：
+    基于 Embedding 相似度的题库语义检测
+    阈值：0.85
+
+  历史违规库匹配（C42）：
+    基于 Embedding 的历史拦截查询匹配
+    阈值：0.90
+
+8.5 MCP 工具系统
+--------------------------------------------------------------------------------
+
+  协议：MCP（Model Context Protocol）风格
+  工具注册：tool_registry.py
+  工具执行：mcp_executer_service.py
+  注册工具（12个）：
+    dialog_summary, entity_relation_extraction, free_chat,
+    function_planner, intent_clarify, intent_recognize,
+    text_summary, title_generation, content_moderation,
+    llm_web_search, user_style, user_knowledge_graph
+
+================================================================================
+九、前端功能说明
+================================================================================
+
+9.1 登录视图（loginView.js）
+--------------------------------------------------------------------------------
+
+  手机号登录：输入手机号 + 短信验证码登录，支持中国大陆手机号格式校验
+  图形验证码：Canvas 绘制的数学运算验证码（加减乘），防止恶意请求
+  验证码倒计时：60 秒倒计时，防止频繁发送
+  用户注册：支持姓名 + 身份证号 + 手机号 + 验证码注册，含身份证格式校验
+  Token 检查：页面加载时自动检查 JWT Token 有效性和过期时间
+  开发者模式：通过 Ctrl+Shift+D 快捷键唤出 Dev Panel，输入口令可跳过登录
+  登录/注册切换：支持登录表单和注册表单之间的平滑切换
+
+9.2 聊天视图（chatView.js，核心文件约 1934 行）
+--------------------------------------------------------------------------------
+
+  流式对话：通过 SSE 实现 AI 回复的流式展示
+  Markdown 渲染：AI 回复支持完整的 Markdown 语法渲染
+  代码高亮：使用 highlight.js 对代码块进行语法高亮
+  图片上传：支持最多 5 张图片上传（jpg/png/gif/webp，单张限制 5MB）
+  图片预览：点击消息中的图片可全屏预览，支持复制/保存/引用操作
+  产品轮播图：5 张产品图片的自动轮播，支持触摸滑动和鼠标拖拽
+  多主题切换：6 种主题风格（明亮/柔和/现代/深色/极简/活力）
+  多语言支持：支持中文（简繁）、英语、东南亚语言、日语、韩语等 17 种语言
+  未成年人模式：开启后传递 minor_mode=true 参数给后端
+  个性化推荐：可开关的个性化推荐功能
+  免责声明弹窗：首次进入时显示 AI 免责声明，确认后不再弹出
+  消息操作：AI 消息支持复制/重新生成；用户消息支持复制/重新发送
+  示例问题：预设示例问题按钮，支持"换一批"随机刷新
+  ID 管理：User ID 和 Session ID 的显示/编辑/重置，移动端可折叠
+  API 配置：支持动态修改后端 API 地址和端口，含连接测试功能
+  停止生成：发送中可随时中断 AI 生成
+  响应式布局：完整的移动端适配（平板/手机/小屏/横屏/刘海屏）
+
+9.3 状态管理（stateManager.js）
+--------------------------------------------------------------------------------
+
+  状态结构：
+    isSending: false,       // 是否正在发送消息
+    messageList: [],        // 消息列表
+    isDarkMode: false,      // 暗色模式
+    lastSendTime: 0,        // 上次发送时间
+    userId: "",             // 用户ID
+    sessionId: "",          // 会话ID
+    minorMode: false,       // 未成年人模式
+    isLoggedIn: false,      // 登录状态
+    userInfo: null,         // 用户信息
+    personalize: true       // 个性化推荐
+
+  持久化策略（localStorage）：
+    darkMode, messageHistory, apiConfig, accessToken, userInfo,
+    current_user_id, current_session_id, currentTheme, currentLanguage,
+    minorMode, personalize, aiDisclaimerAccepted
+
+9.4 主题系统
+--------------------------------------------------------------------------------
+
+  明亮主题（.light-theme）：主色调 #409eff（蓝色）
+  柔和主题（.soft-theme）：主色调 #ff9a9e（粉色）
+  现代主题（.modern-theme）：主色调 #8e44ad（紫色）
+  深色主题（.dark-mode）：主色调 #66b1ff（亮蓝）
+  极简主题（.minimal-theme）：主色调 #6b7280（灰色）
+  活力主题（.vibrant-theme）：主色调 #f59e0b（橙色）
+
+  所有颜色通过 CSS 变量（--primary, --bg-main, --text-main 等）控制
+
+================================================================================
+十、关键设计亮点
+================================================================================
+
+10.1 多 LLM 服务商容错
+--------------------------------------------------------------------------------
+
+  Key 轮转：每个服务商支持最多 9 个 API Key，400/403 错误时自动切换
+  模型回退：配额不足时自动切换到备用模型
+  供应商回退：主供应商失败时切换到备用供应商
+  启动时 Key 健康检测：并行检测所有 Key 的可用性和支持的模型
+
+10.2 内容审核多层防护
+--------------------------------------------------------------------------------
+
+  第一层：关键词检测（7 类违规内容，多线程并行）
+  第二层：LLM 检测（C41，qwen-flash 模型，阈值 0.85）
+  第三层：题库匹配（C35-C39，Embedding 相似度，阈值 0.85）
+  第四层：历史违规库匹配（C42，Embedding 相似度，阈值 0.90）
+
+10.3 SSE 流式输出
+--------------------------------------------------------------------------------
+
+  协议：Server-Sent Events（text/event-stream）
+  状态码：102（处理中）、300（流式片段）、500（错误）、200（完成）
+  前端：chatApi.js 使用 Fetch API + ReadableStream 接收
+
+10.4 会话上下文管理
+--------------------------------------------------------------------------------
+
+  CONTEXT_COLLAPSE 归档机制：当对话轮数超过 MAX_LOOP（默认 2）时，
+  将早期对话归档为摘要，保留最近轮次的完整上下文
+
+10.5 性能监控和指标统计
+--------------------------------------------------------------------------------
+
+  性能监控：@monitor_async 装饰器跟踪异步函数执行时间
+  指标管理：metrics_manager 记录 LLM 调用成本、请求级别统计
+  监控面板：/admin 页面提供实时监控仪表盘
+  指标 API：小时级、日级、实时统计 API
+
+================================================================================
+十一、注意事项与待办事项
+================================================================================
+
+11.1 安全风险
+--------------------------------------------------------------------------------
+
+  ⚠️ aliyun.key（阿里云 RSA 私钥）位于项目根目录，应移至安全位置
+  ⚠️ .env 文件中包含实际 API Key（sk-ea096597b73444198ba32d267f7d5fc2）
+  ⚠️ 建议将密钥文件加入 .gitignore，使用环境变量或密钥管理服务
+
+11.2 缺少依赖锁定文件
+--------------------------------------------------------------------------------
+
+  ⚠️ Python 项目没有 requirements.txt 或 pyproject.toml 文件
+  ⚠️ 部署时需手动安装依赖，建议补充 requirements.txt
+
+11.3 缺少 Docker 化
+--------------------------------------------------------------------------------
+
+  ⚠️ 项目未容器化，依赖 systemd 部署
+  ⚠️ 建议后续考虑 Docker 化，提升部署灵活性
+
+11.4 knowledge_base_service 缺少 systemd 服务
+--------------------------------------------------------------------------------
+
+  ⚠️ 知识库服务无 systemd 管理脚本，需手动启动
+  ⚠️ 建议参考 algorithm_services/fastapi_service.sh 创建管理脚本
+
+11.5 前端无构建工具
+--------------------------------------------------------------------------------
+
+  ⚠️ 前端使用原生 JS，无 Webpack/Vite 等构建工具
+  ⚠️ index.html 内联了大量 CSS（2300+ 行），建议后续拆分
+
+11.6 前端缓存策略
+--------------------------------------------------------------------------------
+
+  ⚠️ 所有资源均设置为 no-cache，HTML 文件更是 no-store
+  ⚠️ 这是开发阶段的配置，生产环境建议启用缓存
+
+11.7 认证后端服务
+--------------------------------------------------------------------------------
+
+  ℹ️ 认证后端服务（localhost:8123）不在本项目范围内
+  ℹ️ 交接时需确认认证后端服务的部署位置和运维方式
+
+================================================================================
+十二、常用命令速查
+================================================================================
+
+12.1 服务管理
+--------------------------------------------------------------------------------
+
+  # algorithm_services
+  sudo /root/YISIA_Algorithm/algorithm_services/fastapi_service.sh install
+  sudo /root/YISIA_Algorithm/algorithm_services/fastapi_service.sh start
+  sudo /root/YISIA_Algorithm/algorithm_services/fastapi_service.sh stop
+  sudo /root/YISIA_Algorithm/algorithm_services/fastapi_service.sh restart
+  sudo /root/YISIA_Algorithm/algorithm_services/fastapi_service.sh status
+  /root/YISIA_Algorithm/algorithm_services/fastapi_service.sh debug
+
+  # frontend_services
+  sudo /root/YISIA_Algorithm/frontend_services/start_frontend_services.sh install
+  sudo /root/YISIA_Algorithm/frontend_services/start_frontend_services.sh start
+  sudo /root/YISIA_Algorithm/frontend_services/start_frontend_services.sh stop
+  sudo /root/YISIA_Algorithm/frontend_services/start_frontend_services.sh restart
+  sudo /root/YISIA_Algorithm/frontend_services/start_frontend_services.sh status
+
+  # knowledge_base_service（手动管理）
+  cd /root/YISIA_Algorithm/knowledge_base_service
+  python main.py
+  # 或
+  uvicorn main:app --host 0.0.0.0 --port 8002
+
+12.2 日志查看
+--------------------------------------------------------------------------------
+
+  # algorithm_services 应用日志
+  tail -f /root/YISIA_Algorithm/algorithm_services/logs/YISIA.log
+
+  # algorithm_services 服务日志
+  tail -f /root/YISIA_Algorithm/algorithm_services/logs/algorithm_service.log
+  tail -f /root/YISIA_Algorithm/algorithm_services/logs/algorithm_service_err.log
+
+  # systemd 服务日志
+  journalctl -u yisia-algorithm -f
+  journalctl -u yisia-frontend -f
+
+12.3 端口检查
+--------------------------------------------------------------------------------
+
+  # 检查端口占用
+  lsof -i:6732  # algorithm_services
+  lsof -i:8002  # knowledge_base_service
+  lsof -i:3000  # frontend_services
+
+  # 检查服务状态
+  systemctl status yisia-algorithm
+  systemctl status yisia-frontend
+
+12.4 开发调试
+--------------------------------------------------------------------------------
+
+  # algorithm_services 调试模式（热重载）
+  cd /root/YISIA_Algorithm/algorithm_services
+  source /root/YISIA_Algorithm/venv/bin/activate
+  export PYTHONPATH=/root/YISIA_Algorithm
+  python -m uvicorn main:app --reload --host 0.0.0.0 --port 6732
+
+  # frontend_services 开发模式
+  cd /root/YISIA_Algorithm/frontend_services
+  npx nodemon server.js
+
+  # API 文档
+  algorithm_services: http://服务器IP:6732/api/docs
+  knowledge_base_service: http://服务器IP:8002/docs
+
+================================================================================
+十三、核心文件索引
+================================================================================
+
+13.1 入口文件
+--------------------------------------------------------------------------------
+
+  algorithm_services/main.py              # 算法服务入口
+  knowledge_base_service/main.py          # 知识库服务入口
+  frontend_services/server.js             # 前端服务入口
+  frontend_services/index.html            # SPA 单页应用入口
+
+13.2 核心业务文件
+--------------------------------------------------------------------------------
+
+  algorithm_services/api/routers/main_router.py              # 统一入口路由
+  algorithm_services/core/services/feature_services/         # 功能服务目录
+  algorithm_services/large_model/llm_factory.py              # LLM 工厂
+  algorithm_services/session/session_factory.py              # 会话工厂
+  algorithm_services/core/moderation/                        # 内容审核模块
+  algorithm_services/core/managers/metrics_manager.py        # 指标管理
+
+  knowledge_base_service/core/services/knowledge_service.py  # 知识服务
+  knowledge_base_service/core/vector_store/                  # 向量存储
+  knowledge_base_service/core/retrieval/                     # 检索模块
+  knowledge_base_service/core/rerank/                        # 重排序模块
+  knowledge_base_service/core/chunking/                      # 文档分块
+
+  frontend_services/assets/js/views/chatView.js              # 聊天视图（核心）
+  frontend_services/assets/js/views/loginView.js             # 登录视图
+  frontend_services/assets/js/core/stateManager.js           # 状态管理
+  frontend_services/assets/js/api/chatApi.js                 # 聊天 API
+
+13.3 配置文件
+--------------------------------------------------------------------------------
+
+  algorithm_services/config/LLM_API.env                      # LLM 配置
+  algorithm_services/config/SESSION.env                      # 会话配置
+  algorithm_services/config/KNOWLEDGE.env                    # 知识库配置
+  algorithm_services/config/MODERATION.env                   # 内容审核配置
+  algorithm_services/config/SCHEDULE.env                     # 定时任务配置
+  knowledge_base_service/config/env                          # 知识库服务配置
+  frontend_services/assets/js/config/appConfig.js            # 前端配置
+
+13.4 部署脚本
+--------------------------------------------------------------------------------
+
+  algorithm_services/fastapi_service.sh                      # 算法服务管理
+  frontend_services/start_frontend_services.sh               # 前端服务管理（Linux）
+  frontend_services/start_frontend_services.bat              # 前端服务管理（Windows）
+
+================================================================================
+十四、交接清单
+================================================================================
+
+  [x] 项目代码
+  [x] 配置文件（.env 文件及示例文件）
+  [x] 部署脚本（fastapi_service.sh, start_frontend_services.sh）
+  [x] 数据文件（向量索引、分块数据、题库数据等）
+  [x] 阿里云 API Key（LLM_API.env 和 knowledge_base_service/config/env）
+  [x] 阿里云 RSA 私钥（aliyun.key）
+  [ ] 认证后端服务（localhost:8123，需另行交接）
+  [ ] 服务器访问权限（需确认服务器 IP、SSH 账号密码）
+  [ ] 域名和 SSL 证书（如有）
+  [ ] 监控告警配置（如有）
+
+================================================================================

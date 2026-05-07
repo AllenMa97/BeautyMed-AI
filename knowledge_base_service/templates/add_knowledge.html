@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>添加知识 - 知识库管理</title>
+    <meta charset="utf-8">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .navigation-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .nav-link {
+            text-decoration: none;
+            padding: 8px 16px;
+            margin: 0 10px;
+            border-radius: 6px;
+            background: #e9ecef;
+            color: #495057;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: #d3d9df;
+        }
+        
+        .nav-link.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom: 2px solid white;
+            margin-bottom: -2px;
+        }
+        
+        .tab-btn:hover:not(.active) {
+            background: #f0f0ff;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e9ecef;
+        }
+        
+        .card h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+            font-size: 0.95em;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            font-family: inherit;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        button.secondary {
+            background: #6c757d;
+        }
+        
+        .message {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .tutorial-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .tutorial-section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        
+        .file-format-example {
+            background: white;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .file-format-example h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            background: #f0f0ff;
+            border-color: #764ba2;
+        }
+        
+        .upload-area.dragover {
+            background: #e8e8ff;
+            border-color: #764ba2;
+        }
+        
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .file-list {
+            margin-top: 20px;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .file-item .file-name {
+            font-weight: 500;
+        }
+        
+        .file-item .file-size {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .remove-file {
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.9em;
+            border-top: 1px solid #e9ecef;
+            margin-top: 20px;
+        }
+        
+        .help-text {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .tag-input-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            min-height: 44px;
+        }
+        
+        .tag {
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .tag .remove-tag {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .tag-input {
+            border: none;
+            outline: none;
+            flex: 1;
+            min-width: 100px;
+            padding: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 知识库管理</h1>
+            <p class="subtitle">手动添加知识和批量导入</p>
+        </header>
+        
+        <div class="content">
+            <div class="navigation-links">
+                <a href="/" class="nav-link">🏠 首页</a>
+                <a href="/knowledge" class="nav-link">📖 知识库</a>
+                <a href="/add_knowledge" class="nav-link active">➕ 添加知识</a>
+                <a href="/edit_knowledge" class="nav-link">✏️ 编辑知识</a>
+                <a href="/api/docs" class="nav-link">📄 API文档</a>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('manual')">✍️ 手动添加</button>
+                <button class="tab-btn" onclick="switchTab('batch')">📦 批量导入</button>
+                <button class="tab-btn" onclick="switchTab('tutorial')">📖 导入教程</button>
+            </div>
+            
+            <!-- 手动添加标签页 -->
+            <div id="manualTab" class="tab-content active">
+                <div class="card">
+                    <h2>✍️ 手动添加知识</h2>
+                    
+                    <form id="knowledgeForm">
+                        <div class="form-group">
+                            <label for="knowledgeType">知识类型 *</label>
+                            <select id="knowledgeType" required>
+                                <option value="">请选择类型</option>
+                                <option value="product">产品信息</option>
+                                <option value="knowledge">专业知识</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 产品信息表单 -->
+                        <div id="productForm" style="display:none;">
+                            <div class="form-group">
+                                <label for="productName">产品名称 *</label>
+                                <input type="text" id="productName" placeholder="例如：玻尿酸精华液">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="productBrand">品牌</label>
+                                    <input type="text" id="productBrand" placeholder="例如：雅诗兰黛">
+                                </div>
+                                <div class="form-group">
+                                    <label for="productPrice">参考价 (元)</label>
+                                    <input type="number" id="productPrice" placeholder="例如：299" step="0.01">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="productCategory">产品分类</label>
+                                    <select id="productCategory" onchange="handleCategoryChange('product')">
+                                        <option value="">请选择分类</option>
+                                        <option value="护肤品">护肤品</option>
+                                        <option value="彩妆">彩妆</option>
+                                        <option value="医美项目">医美项目</option>
+                                        <option value="医疗器械">医疗器械</option>
+                                        <option value="保健品">保健品</option>
+                                        <option value="其他">其他</option>
+                                        <option value="custom">自定义...</option>
+                                    </select>
+                                    <input type="text" id="productCategoryCustom" placeholder="请输入自定义分类" style="display:none; margin-top: 10px;">
+                                </div>
+                                <div class="form-group">
+                                    <label for="productEfficacy">主要功效</label>
+                                    <input type="text" id="productEfficacy" placeholder="例如：保湿、抗衰老">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="productSkin">适用肤质</label>
+                                <input type="text" id="productSkin" placeholder="例如：干性、混合性、敏感性">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="productDescription">产品描述 *</label>
+                                <textarea id="productDescription" placeholder="详细描述产品的特点、成分、使用方法等..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>产品标签</label>
+                                <div class="tag-input-container" id="productTags">
+                                    <input type="text" class="tag-input" placeholder="输入标签后按回车添加">
+                                </div>
+                                <div class="help-text">例如：玻尿酸、保湿、抗衰老等</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 专业知识表单 -->
+                        <div id="knowledgeFormSection" style="display:none;">
+                            <div class="form-group">
+                                <label for="knowledgeTitle">知识标题 *</label>
+                                <input type="text" id="knowledgeTitle" placeholder="例如：玻尿酸的护肤原理与应用">
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="knowledgeTopic">主题分类</label>
+                                    <select id="knowledgeTopic" onchange="handleCategoryChange('knowledge')">
+                                        <option value="">请选择主题</option>
+                                        <option value="护肤知识">护肤知识</option>
+                                        <option value="医美知识">医美知识</option>
+                                        <option value="成分解析">成分解析</option>
+                                        <option value="疾病科普">疾病科普</option>
+                                        <option value="治疗方案">治疗方案</option>
+                                        <option value="其他">其他</option>
+                                        <option value="custom">自定义...</option>
+                                    </select>
+                                    <input type="text" id="knowledgeTopicCustom" placeholder="请输入自定义主题" style="display:none; margin-top: 10px;">
+                                </div>
+                                <div class="form-group">
+                                    <label for="knowledgeLayer">知识层级</label>
+                                    <select id="knowledgeLayer">
+                                        <option value="specific">具体知识</option>
+                                        <option value="domain_background">领域背景</option>
+                                        <option value="associative">关联知识</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="knowledgeContent">知识内容 *</label>
+                                <textarea id="knowledgeContent" style="min-height: 250px;" placeholder="详细描述专业知识内容..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="knowledgeSource">来源URL</label>
+                                <input type="url" id="knowledgeSource" placeholder="例如：https://example.com/article">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>知识标签</label>
+                                <div class="tag-input-container" id="knowledgeTags">
+                                    <input type="text" class="tag-input" placeholder="输入标签后按回车添加">
+                                </div>
+                                <div class="help-text">例如：玻尿酸、护肤、科学原理等</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 30px;">
+                            <button type="submit" id="submitBtn">💾 保存知识</button>
+                            <button type="button" class="secondary" onclick="resetForm()">🔄 重置表单</button>
+                        </div>
+                        
+                        <div id="formMessage" class="message" style="display:none;"></div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 批量导入标签页 -->
+            <div id="batchTab" class="tab-content">
+                <div class="card">
+                    <h2>📦 批量导入知识</h2>
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <h3>拖拽文件到此处或点击上传</h3>
+                        <p>支持 JSON、CSV、Markdown 格式文件</p>
+                        <input type="file" id="fileInput" multiple accept=".json,.csv,.md,.txt" style="display:none;">
+                    </div>
+                    
+                    <div class="file-list" id="fileList"></div>
+                    
+                    <div style="margin-top: 20px;">
+                        <button onclick="uploadFiles()" id="uploadBtn" disabled>📤 上传并处理</button>
+                        <button class="secondary" onclick="clearFiles()">🗑️ 清空文件</button>
+                    </div>
+                    
+                    <div id="uploadMessage" class="message" style="display:none;"></div>
+                </div>
+                
+                <div class="card">
+                    <h2>📋 快速指南</h2>
+                    <div class="tutorial-section">
+                        <h3>支持的文件格式：</h3>
+                        <ul style="margin-left: 20px; line-height: 1.8;">
+                            <li><strong>JSON格式</strong> - 适合结构化数据批量导入</li>
+                            <li><strong>CSV格式</strong> - 适合表格数据批量导入</li>
+                            <li><strong>Markdown格式</strong> - 适合长文本知识导入</li>
+                        </ul>
+                        <p style="margin-top: 15px;">
+                            <a href="/add_knowledge" onclick="switchTab('tutorial'); return false;" style="color: #667eea;">查看详细导入教程 →</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 导入教程标签页 -->
+            <div id="tutorialTab" class="tab-content">
+                <div class="card">
+                    <h2>📖 批量导入教程</h2>
+                    
+                    <div class="tutorial-section">
+                        <h3>1️⃣ JSON 格式导入</h3>
+                        <p>JSON格式适合批量导入结构化的产品和知识数据。</p>
+                        
+                        <div class="file-format-example">
+                            <h4>产品信息示例 (products.json)：</h4>
+                            <div class="code-block">
+<pre>[
+  {
+    "name": "玻尿酸精华液",
+    "brand": "雅诗兰黛",
+    "reference_price": 299.00,
+    "category": "护肤品",
+    "efficacy": "保湿、抗衰老",
+    "applicable_skin": "干性、混合性",
+    "description": "高浓度玻尿酸精华，深层保湿...",
+    "tags": ["玻尿酸", "保湿", "抗衰老"]
+  },
+  {
+    "name": "水光针",
+    "brand": "瑞蓝",
+    "reference_price": 2980.00,
+    "category": "医美项目",
+    "efficacy": "深层补水、改善肤质",
+    "applicable_skin": "所有肤质",
+    "description": "中胚层疗法，将玻尿酸直接注入真皮层...",
+    "tags": ["水光针", "玻尿酸", "医美"]
+  }
+]</pre>
+                            </div>
+                        </div>
+                        
+                        <div class="file-format-example">
+                            <h4>专业知识示例 (knowledge.json)：</h4>
+                            <div class="code-block">
+<pre>[
+  {
+    "title": "玻尿酸的护肤原理与应用",
+    "topic": "成分解析",
+    "layer": "specific",
+    "content": "玻尿酸（Hyaluronic Acid）是一种天然多糖...",
+    "source_url": "https://example.com/article",
+    "tags": ["玻尿酸", "护肤", "科学原理"]
+  },
+  {
+    "title": "光子嫩肤的治疗机制",
+    "topic": "医美知识",
+    "layer": "specific",
+    "content": "光子嫩肤利用强脉冲光（IPL）技术...",
+    "source_url": "https://example.com/ipl",
+    "tags": ["光子嫩肤", "IPL", "医美"]
+  }
+]</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tutorial-section">
+                        <h3>2️⃣ CSV 格式导入</h3>
+                        <p>CSV格式适合从Excel导出的表格数据。</p>
+                        
+                        <div class="file-format-example">
+                            <h4>产品信息CSV格式：</h4>
+                            <div class="code-block">
+<pre>name,brand,reference_price,category,efficacy,applicable_skin,description,tags
+玻尿酸精华液,雅诗兰黛,299,护肤品,保湿抗衰老,干性混合性,高浓度玻尿酸精华,"玻尿酸,保湿,抗衰老"
+水光针,瑞蓝,2980,医美项目,深层补水,所有肤质,中胚层疗法,"水光针,玻尿酸,医美"</pre>
+                            </div>
+                        </div>
+                        
+                        <div class="file-format-example">
+                            <h4>专业知识CSV格式：</h4>
+                            <div class="code-block">
+<pre>title,topic,layer,content,source_url,tags
+玻尿酸的护肤原理与应用,成分解析,specific,玻尿酸是一种天然多糖...,https://example.com,"玻尿酸,护肤"
+光子嫩肤的治疗机制,医美知识,specific,光子嫩肤利用强脉冲光...,https://example.com,"光子嫩肤,IPL"</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tutorial-section">
+                        <h3>3️⃣ Markdown 格式导入</h3>
+                        <p>Markdown格式适合导入长文本的专业知识。</p>
+                        
+                        <div class="file-format-example">
+                            <h4>Markdown文件格式：</h4>
+                            <div class="code-block">
+<pre># 玻尿酸的护肤原理与应用
+
+**主题:** 成分解析
+**层级:** specific
+**标签:** 玻尿酸, 护肤, 科学原理
+**来源:** https://example.com/article
+
+## 内容
+
+玻尿酸（Hyaluronic Acid）是一种天然多糖，具有强大的保湿能力...
+
+### 玻尿酸的作用机制
+
+1. **保湿作用** - 能够结合自身重量1000倍的水分
+2. **填充作用** - 在真皮层形成支撑结构
+3. **修复作用** - 促进胶原蛋白合成
+
+### 应用领域
+
+- 护肤品添加
+- 医美注射
+- 口服美容
+
+---
+
+# 光子嫩肤的治疗机制
+
+**主题:** 医美知识
+**层级:** specific
+**标签:** 光子嫩肤, IPL, 医美
+**来源:** https://example.com/ipl
+
+## 内容
+
+光子嫩肤利用强脉冲光（IPL）技术...</pre>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tutorial-section">
+                        <h3>4️⃣ 文件存放路径</h3>
+                        <p>批量导入的文件可以通过以下方式处理：</p>
+                        
+                        <div style="background: white; padding: 15px; border-radius: 6px; margin: 10px 0;">
+                            <h4 style="color: #667eea; margin-bottom: 10px;">方式一：Web界面上传</h4>
+                            <p>在"批量导入"标签页中直接拖拽或选择文件上传，系统会自动处理。</p>
+                        </div>
+                        
+                        <div style="background: white; padding: 15px; border-radius: 6px; margin: 10px 0;">
+                            <h4 style="color: #667eea; margin-bottom: 10px;">方式二：手动放置文件</h4>
+                            <p>将准备好的文件放置到以下目录：</p>
+                            <div class="code-block">
+<pre>knowledge_base_service/
+├── import_data/           # 创建此目录用于存放导入文件
+│   ├── products.json      # 产品数据文件
+│   ├── knowledge.json     # 知识数据文件
+│   └── articles.md        # Markdown知识文件
+└── layered_knowledge_base/ # 知识存储目录（系统自动管理）
+    ├── domain_background/
+    ├── specific/
+    └── associative/</pre>
+                            </div>
+                            <p style="margin-top: 10px;">然后调用API接口处理：<code>POST /api/v1/knowledge/import</code></p>
+                        </div>
+                    </div>
+                    
+                    <div class="tutorial-section">
+                        <h3>5️⃣ 字段说明</h3>
+                        
+                        <h4 style="margin-top: 15px;">产品信息字段：</h4>
+                        <ul style="margin-left: 20px; line-height: 1.8;">
+                            <li><strong>name</strong> (必填) - 产品名称</li>
+                            <li><strong>brand</strong> - 品牌</li>
+                            <li><strong>reference_price</strong> - 参考价（数字）</li>
+                            <li><strong>category</strong> - 产品分类</li>
+                            <li><strong>efficacy</strong> - 主要功效</li>
+                            <li><strong>applicable_skin</strong> - 适用肤质</li>
+                            <li><strong>description</strong> (必填) - 产品描述</li>
+                            <li><strong>tags</strong> - 标签数组或逗号分隔的字符串</li>
+                        </ul>
+                        
+                        <h4 style="margin-top: 15px;">专业知识字段：</h4>
+                        <ul style="margin-left: 20px; line-height: 1.8;">
+                            <li><strong>title</strong> (必填) - 知识标题</li>
+                            <li><strong>topic</strong> - 主题分类</li>
+                            <li><strong>layer</strong> - 知识层级（specific/domain_background/associative）</li>
+                            <li><strong>content</strong> (必填) - 知识内容</li>
+                            <li><strong>source_url</strong> - 来源URL</li>
+                            <li><strong>tags</strong> - 标签数组或逗号分隔的字符串</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>知识库服务 v1.0 · 智能知识管理系统</p>
+        </footer>
+    </div>
+    
+    <script>
+        let selectedFiles = [];
+        let productTags = [];
+        let knowledgeTags = [];
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            const tabIndex = ['manual', 'batch', 'tutorial'].indexOf(tab);
+            document.querySelectorAll('.tab-btn')[tabIndex].classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+        
+        document.getElementById('knowledgeType').addEventListener('change', function() {
+            const type = this.value;
+            document.getElementById('productForm').style.display = type === 'product' ? 'block' : 'none';
+            document.getElementById('knowledgeFormSection').style.display = type === 'knowledge' ? 'block' : 'none';
+        });
+        
+        function setupTagInput(containerId, tagsArray) {
+            const container = document.getElementById(containerId);
+            const input = container.querySelector('.tag-input');
+            
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const tag = this.value.trim();
+                    if (tag && !tagsArray.includes(tag)) {
+                        tagsArray.push(tag);
+                        renderTags(containerId, tagsArray);
+                    }
+                    this.value = '';
+                }
+            });
+        }
+        
+        function renderTags(containerId, tagsArray) {
+            const container = document.getElementById(containerId);
+            const input = container.querySelector('.tag-input');
+            
+            container.querySelectorAll('.tag').forEach(tag => tag.remove());
+            
+            tagsArray.forEach((tag, index) => {
+                const tagElement = document.createElement('span');
+                tagElement.className = 'tag';
+                tagElement.innerHTML = `${tag} <span class="remove-tag" onclick="removeTag('${containerId}', ${index})">×</span>`;
+                container.insertBefore(tagElement, input);
+            });
+        }
+        
+        function removeTag(containerId, index) {
+            if (containerId === 'productTags') {
+                productTags.splice(index, 1);
+                renderTags(containerId, productTags);
+            } else {
+                knowledgeTags.splice(index, 1);
+                renderTags(containerId, knowledgeTags);
+            }
+        }
+        
+        setupTagInput('productTags', productTags);
+        setupTagInput('knowledgeTags', knowledgeTags);
+        
+        function handleCategoryChange(type) {
+            if (type === 'product') {
+                const select = document.getElementById('productCategory');
+                const customInput = document.getElementById('productCategoryCustom');
+                if (select.value === 'custom') {
+                    customInput.style.display = 'block';
+                    customInput.required = true;
+                } else {
+                    customInput.style.display = 'none';
+                    customInput.required = false;
+                    customInput.value = '';
+                }
+            } else if (type === 'knowledge') {
+                const select = document.getElementById('knowledgeTopic');
+                const customInput = document.getElementById('knowledgeTopicCustom');
+                if (select.value === 'custom') {
+                    customInput.style.display = 'block';
+                    customInput.required = true;
+                } else {
+                    customInput.style.display = 'none';
+                    customInput.required = false;
+                    customInput.value = '';
+                }
+            }
+        }
+        
+        document.getElementById('knowledgeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const type = document.getElementById('knowledgeType').value;
+            const messageDiv = document.getElementById('formMessage');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (!type) {
+                showMessage('formMessage', '请选择知识类型', 'error');
+                return;
+            }
+            
+            let data = {};
+            let endpoint = '';
+            
+            if (type === 'product') {
+                const name = document.getElementById('productName').value.trim();
+                const description = document.getElementById('productDescription').value.trim();
+                
+                if (!name || !description) {
+                    showMessage('formMessage', '产品名称和描述为必填项', 'error');
+                    return;
+                }
+                
+                data = {
+                    name: name,
+                    brand: document.getElementById('productBrand').value.trim(),
+                    reference_price: parseFloat(document.getElementById('productPrice').value) || 0,
+                    category: document.getElementById('productCategory').value === 'custom' 
+                        ? document.getElementById('productCategoryCustom').value.trim() 
+                        : document.getElementById('productCategory').value,
+                    efficacy: document.getElementById('productEfficacy').value.trim(),
+                    applicable_skin: document.getElementById('productSkin').value.trim(),
+                    description: description,
+                    tags: productTags
+                };
+                endpoint = '/api/v1/knowledge/add_product';
+                
+            } else {
+                const title = document.getElementById('knowledgeTitle').value.trim();
+                const content = document.getElementById('knowledgeContent').value.trim();
+                
+                if (!title || !content) {
+                    showMessage('formMessage', '知识标题和内容为必填项', 'error');
+                    return;
+                }
+                
+                data = {
+                    title: title,
+                    topic: document.getElementById('knowledgeTopic').value === 'custom'
+                        ? document.getElementById('knowledgeTopicCustom').value.trim()
+                        : document.getElementById('knowledgeTopic').value,
+                    layer: document.getElementById('knowledgeLayer').value,
+                    content: content,
+                    source_url: document.getElementById('knowledgeSource').value.trim(),
+                    tags: knowledgeTags
+                };
+                endpoint = '/api/v1/knowledge/add_knowledge';
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '保存中...';
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.msg === 'success') {
+                    showMessage('formMessage', '✅ 知识添加成功！', 'success');
+                    resetForm();
+                } else {
+                    showMessage('formMessage', '❌ 添加失败: ' + (result.msg || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showMessage('formMessage', '❌ 网络错误: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '💾 保存知识';
+            }
+        });
+        
+        function resetForm() {
+            document.getElementById('knowledgeForm').reset();
+            document.getElementById('productForm').style.display = 'none';
+            document.getElementById('knowledgeFormSection').style.display = 'none';
+            document.getElementById('productCategoryCustom').style.display = 'none';
+            document.getElementById('knowledgeTopicCustom').style.display = 'none';
+            productTags = [];
+            knowledgeTags = [];
+            renderTags('productTags', productTags);
+            renderTags('knowledgeTags', knowledgeTags);
+            document.getElementById('formMessage').style.display = 'none';
+        }
+        
+        function showMessage(elementId, text, type) {
+            const messageDiv = document.getElementById(elementId);
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+            messageDiv.style.display = 'block';
+        }
+        
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        function handleFiles(files) {
+            for (let file of files) {
+                if (!selectedFiles.find(f => f.name === file.name)) {
+                    selectedFiles.push(file);
+                }
+            }
+            renderFileList();
+        }
+        
+        function renderFileList() {
+            const fileListDiv = document.getElementById('fileList');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (selectedFiles.length === 0) {
+                fileListDiv.innerHTML = '';
+                uploadBtn.disabled = true;
+                return;
+            }
+            
+            uploadBtn.disabled = false;
+            
+            let html = '<h3 style="margin-bottom: 15px;">已选择的文件：</h3>';
+            selectedFiles.forEach((file, index) => {
+                const size = (file.size / 1024).toFixed(2);
+                html += `
+                    <div class="file-item">
+                        <div>
+                            <span class="file-name">📄 ${file.name}</span>
+                            <span class="file-size">(${size} KB)</span>
+                        </div>
+                        <span class="remove-file" onclick="removeFile(${index})">✕</span>
+                    </div>
+                `;
+            });
+            
+            fileListDiv.innerHTML = html;
+        }
+        
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderFileList();
+        }
+        
+        function clearFiles() {
+            selectedFiles = [];
+            renderFileList();
+            document.getElementById('uploadMessage').style.display = 'none';
+        }
+        
+        async function uploadFiles() {
+            if (selectedFiles.length === 0) {
+                showMessage('uploadMessage', '请先选择文件', 'error');
+                return;
+            }
+            
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '处理中...';
+            
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+            
+            try {
+                const response = await fetch('/api/v1/knowledge/import', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    const data = result.data || {};
+                    showMessage('uploadMessage', 
+                        `✅ 导入成功！产品: ${data.products_imported || 0}, 知识: ${data.knowledge_imported || 0}`, 
+                        'success'
+                    );
+                    clearFiles();
+                } else {
+                    showMessage('uploadMessage', '❌ 导入失败: ' + (result.msg || '未知错误'), 'error');
+                }
+            } catch (error) {
+                showMessage('uploadMessage', '❌ 网络错误: ' + error.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '📤 上传并处理';
+            }
+        }
+    </script>
+</body>
+</html>

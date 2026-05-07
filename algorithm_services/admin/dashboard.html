@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YISIA 监控面板</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+        .header {
+            background: #16213e;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0f3460;
+        }
+        .header h1 { font-size: 24px; color: #e94560; }
+        .header .controls { display: flex; gap: 10px; align-items: center; }
+        .header .refresh-btn, .header .range-btn {
+            background: #0f3460;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .header .refresh-btn:hover, .header .range-btn:hover { background: #e94560; }
+        .header .range-btn.active { background: #e94560; }
+        
+        .container { padding: 20px 40px; }
+        
+        .card {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .stat-item {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-item .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e94560;
+        }
+        .stat-item .label {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .chart-container {
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        
+        .hourly-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .hourly-table th, .hourly-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #0f3460;
+        }
+        .hourly-table th { background: #0f3460; color: #fff; }
+        .hourly-table .error { color: #e94560; }
+        .hourly-table .success { color: #4ade80; }
+        .loading { text-align: center; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>YISIA 监控面板</h1>
+        <div class="controls">
+            <button class="range-btn active" data-days="1">今天</button>
+            <button class="range-btn" data-days="3">3天</button>
+            <button class="range-btn" data-days="7">7天</button>
+            <button class="range-btn" data-days="30">30天</button>
+            <button class="refresh-btn" onclick="loadData()">刷新</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- 统计卡片 -->
+        <div class="card">
+            <h2 id="period-title">今日统计</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="value" id="stat-calls">0</div>
+                    <div class="label">LLM调用次数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value" id="stat-requests">0</div>
+                    <div class="label">请求次数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value" id="stat-tokens">0</div>
+                    <div class="label">Token消耗</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value" id="stat-latency">0ms</div>
+                    <div class="label">平均延迟</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value" id="stat-errors">0</div>
+                    <div class="label">错误数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value" id="stat-sessions">0</div>
+                    <div class="label">活跃会话</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 图表 -->
+        <div class="card">
+            <h2>Token 消耗趋势</h2>
+            <div id="token-chart" class="chart-container"></div>
+        </div>
+        
+        <div class="card">
+            <h2>LLM 调用次数趋势</h2>
+            <div id="calls-chart" class="chart-container"></div>
+        </div>
+        
+        <div class="card">
+            <h2>响应延迟趋势</h2>
+            <div id="latency-chart" class="chart-container"></div>
+        </div>
+        
+        <!-- 模型统计 -->
+        <div class="card">
+            <h2>按模型统计</h2>
+            <table class="hourly-table">
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Model</th>
+                        <th>调用次数</th>
+                        <th>Input Tokens</th>
+                        <th>Output Tokens</th>
+                        <th>Total Tokens</th>
+                        <th>平均延迟</th>
+                        <th>错误数</th>
+                    </tr>
+                </thead>
+                <tbody id="model-table-body">
+                    <tr><td colspan="8" style="text-align:center;color:#888">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Key统计 -->
+        <div class="card">
+            <h2>按 Key 统计</h2>
+            <table class="hourly-table">
+                <thead>
+                    <tr>
+                        <th>Key ID</th>
+                        <th>调用次数</th>
+                        <th>Input Tokens</th>
+                        <th>Output Tokens</th>
+                        <th>Total Tokens</th>
+                        <th>平均延迟</th>
+                        <th>错误数</th>
+                    </tr>
+                </thead>
+                <tbody id="key-table-body">
+                    <tr><td colspan="7" style="text-align:center;color:#888">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        let currentDays = 1;
+        let tokenChart, callsChart, latencyChart;
+        
+        // 初始化图表
+        function initCharts() {
+            tokenChart = echarts.init(document.getElementById('token-chart'));
+            callsChart = echarts.init(document.getElementById('calls-chart'));
+            latencyChart = echarts.init(document.getElementById('latency-chart'));
+            
+            const chartTheme = {
+                backgroundColor: 'transparent',
+                textStyle: { color: '#888' },
+                line: { smooth: true },
+                areaStyle: { opacity: 0.3 }
+            };
+            
+            tokenChart.setOption({...chartTheme, xAxis: { type: 'category', data: [] }, yAxis: { type: 'value' }, series: [{ type: 'line', data: [], areaStyle: {}, name: 'Token' }]});
+            callsChart.setOption({...chartTheme, xAxis: { type: 'category', data: [] }, yAxis: { type: 'value' }, series: [{ type: 'line', data: [], areaStyle: {}, name: '调用次数' }]});
+            latencyChart.setOption({...chartTheme, xAxis: { type: 'category', data: [] }, yAxis: { type: 'value' }, series: [{ type: 'line', data: [], areaStyle: {}, name: '延迟(ms)' }]});
+        }
+        
+        // 更新图表
+        function updateCharts(hourlyData) {
+            const hours = hourlyData.map(d => d.hour.slice(11, 16));
+            const tokens = hourlyData.map(d => d.total_tokens);
+            const calls = hourlyData.map(d => d.llm_calls);
+            const latency = hourlyData.map(d => d.avg_latency_ms);
+            
+            const commonOptions = {
+                tooltip: { trigger: 'axis' },
+                grid: { left: 50, right: 20, top: 30, bottom: 30 }
+            };
+            
+            tokenChart.setOption({
+                ...commonOptions,
+                xAxis: { type: 'category', data: hours, axisLabel: { color: '#888' } },
+                yAxis: { type: 'value', axisLabel: { color: '#888' } },
+                series: [{ type: 'line', data: tokens, name: 'Token', itemStyle: { color: '#e94560' }, areaStyle: { color: 'rgba(233,69,96,0.3)' } }]
+            });
+            
+            callsChart.setOption({
+                ...commonOptions,
+                xAxis: { type: 'category', data: hours, axisLabel: { color: '#888' } },
+                yAxis: { type: 'value', axisLabel: { color: '#888' } },
+                series: [{ type: 'line', data: calls, name: '调用次数', itemStyle: { color: '#4ade80' }, areaStyle: { color: 'rgba(74,222,128,0.3)' } }]
+            });
+            
+            latencyChart.setOption({
+                ...commonOptions,
+                xAxis: { type: 'category', data: hours, axisLabel: { color: '#888' } },
+                yAxis: { type: 'value', axisLabel: { color: '#888' } },
+                series: [{ type: 'line', data: latency, name: '延迟(ms)', itemStyle: { color: '#60a5fa' }, areaStyle: { color: 'rgba(96,165,250,0.3)' } }]
+            });
+        }
+        
+        // 加载数据
+        async function loadData() {
+            try {
+                const [dailyRes, hourlyRes, modelKeyRes] = await Promise.all([
+                    fetch(`/api/v1/metrics/daily/${currentDays}`),
+                    fetch(`/api/v1/metrics/hourly/${currentDays}`),
+                    fetch(`/api/v1/metrics/model-key/${currentDays}`)
+                ]);
+                
+                const daily = await dailyRes.json();
+                const hourly = await hourlyRes.json();
+                const modelKey = await modelKeyRes.json();
+                
+                // 更新标题
+                const periodNames = {1: '今日统计', 3: '3天统计', 7: '7天统计', 30: '30天统计'};
+                document.getElementById('period-title').textContent = periodNames[currentDays] || '今日统计';
+                
+                // 更新统计卡片
+                document.getElementById('stat-calls').textContent = daily.total_llm_calls || 0;
+                document.getElementById('stat-requests').textContent = daily.total_requests || 0;
+                document.getElementById('stat-tokens').textContent = (daily.total_tokens || 0).toLocaleString();
+                document.getElementById('stat-latency').textContent = (daily.avg_latency_ms || 0) + 'ms';
+                document.getElementById('stat-errors').textContent = daily.errors || 0;
+                document.getElementById('stat-sessions').textContent = daily.unique_sessions || 0;
+                
+                // 更新图表
+                if (hourly && hourly.length > 0) {
+                    updateCharts(hourly);
+                }
+                
+                // 更新模型统计表格
+                updateModelKeyTable(modelKey);
+                
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        // 更新模型和Key统计表格
+        function updateModelKeyTable(data) {
+            const modelTable = document.getElementById('model-table-body');
+            const keyTable = document.getElementById('key-table-body');
+            
+            if (data.by_model && data.by_model.length > 0) {
+                modelTable.innerHTML = data.by_model.map(m => `
+                    <tr>
+                        <td>${m.provider}</td>
+                        <td>${m.model}</td>
+                        <td>${m.calls}</td>
+                        <td>${m.input_tokens.toLocaleString()}</td>
+                        <td>${m.output_tokens.toLocaleString()}</td>
+                        <td>${m.total_tokens.toLocaleString()}</td>
+                        <td>${m.avg_latency_ms}ms</td>
+                        <td class="${m.errors > 0 ? 'error' : 'success'}">${m.errors}</td>
+                    </tr>
+                `).join('');
+            } else {
+                modelTable.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#888">暂无数据</td></tr>';
+            }
+            
+            if (data.by_key && data.by_key.length > 0) {
+                keyTable.innerHTML = data.by_key.map(k => `
+                    <tr>
+                        <td>${k.key_id}</td>
+                        <td>${k.calls}</td>
+                        <td>${k.input_tokens.toLocaleString()}</td>
+                        <td>${k.output_tokens.toLocaleString()}</td>
+                        <td>${k.total_tokens.toLocaleString()}</td>
+                        <td>${k.avg_latency_ms}ms</td>
+                        <td class="${k.errors > 0 ? 'error' : 'success'}">${k.errors}</td>
+                    </tr>
+                `).join('');
+            } else {
+                keyTable.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#888">暂无数据</td></tr>';
+            }
+        }
+        
+        // 初始化
+        initCharts();
+        loadData();
+        
+        // 每30秒自动刷新
+        setInterval(loadData, 30000);
+        
+        // 绑定按钮事件
+        document.querySelectorAll('.range-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentDays = parseInt(this.dataset.days);
+                loadData();
+            });
+        });
+        
+        // 窗口大小变化时重新调整图表
+        window.addEventListener('resize', () => {
+            tokenChart && tokenChart.resize();
+            callsChart && callsChart.resize();
+            latencyChart && latencyChart.resize();
+        });
+    </script>
+</body>
+</html>

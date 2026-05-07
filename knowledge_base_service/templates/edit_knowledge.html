@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>编辑知识 - 知识库管理</title>
+    <meta charset="utf-8">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .navigation-links {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .nav-link {
+            text-decoration: none;
+            padding: 8px 16px;
+            margin: 0 10px;
+            border-radius: 6px;
+            background: #e9ecef;
+            color: #495057;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            background: #d3d9df;
+        }
+        
+        .nav-link.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .search-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-row {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        
+        .search-input-group {
+            flex: 1;
+        }
+        
+        .search-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .search-input-group input,
+        .search-input-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        .search-input-group input:focus,
+        .search-input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .results-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s ease;
+        }
+        
+        .result-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-item .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .result-item .item-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .result-item .item-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .result-item .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .result-item .item-actions button {
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+        
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .edit-modal.show {
+            display: flex;
+        }
+        
+        .edit-modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .edit-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .edit-modal-header h3 {
+            margin: 0;
+            font-size: 1.3em;
+        }
+        
+        .edit-modal-header .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            opacity: 0.8;
+            padding: 0;
+        }
+        
+        .edit-modal-header .close-btn:hover {
+            opacity: 1;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .edit-modal-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+        
+        .message {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .tag {
+            display: inline-block;
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .confirm-modal.show {
+            display: flex;
+        }
+        
+        .confirm-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .confirm-modal-content h3 {
+            margin-bottom: 15px;
+            color: #dc3545;
+        }
+        
+        .confirm-modal-content p {
+            margin-bottom: 20px;
+            color: #6c757d;
+        }
+        
+        .confirm-modal-content .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>编辑知识</h1>
+            <p class="subtitle">搜索、编辑和删除知识库中的内容</p>
+        </header>
+        
+        <div class="content">
+            <div class="navigation-links">
+                <a href="/" class="nav-link">首页</a>
+                <a href="/knowledge" class="nav-link">知识库</a>
+                <a href="/add_knowledge" class="nav-link">➕ 添加知识</a>
+                <a href="/edit_knowledge" class="nav-link active">✏️ 编辑知识</a>
+                <a href="/api/docs" class="nav-link">API文档</a>
+            </div>
+            
+            <div class="search-section">
+                <div class="search-row">
+                    <div class="search-input-group">
+                        <label for="searchQuery">搜索关键词</label>
+                        <input type="text" id="searchQuery" placeholder="输入产品名称、品牌或关键词...">
+                    </div>
+                    <div class="search-input-group" style="width: 130px;">
+                        <label for="searchType">类型</label>
+                        <select id="searchType">
+                            <option value="all">全部</option>
+                            <option value="products">产品</option>
+                            <option value="entries">知识条目</option>
+                        </select>
+                    </div>
+                    <div class="search-input-group" style="width: 130px;">
+                        <label for="searchMode">搜索模式</label>
+                        <select id="searchMode">
+                            <option value="keyword">精准匹配</option>
+                            <option value="hybrid">混合检索</option>
+                            <option value="vector">向量检索</option>
+                        </select>
+                    </div>
+                    <div class="search-input-group" style="width: 130px;" id="keywordFieldGroup">
+                        <label for="keywordField">匹配字段</label>
+                        <select id="keywordField">
+                            <option value="">全部字段</option>
+                            <option value="name">名称</option>
+                            <option value="brand">品牌</option>
+                            <option value="category">类别</option>
+                            <option value="efficacy">功效</option>
+                            <option value="title">标题</option>
+                            <option value="topic">条目类别</option>
+                            <option value="description">描述/正文</option>
+                        </select>
+                    </div>
+                    <button onclick="searchItems()">🔍 搜索</button>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('products')">📦 产品 (<span id="productCount">0</span>)</button>
+                <button class="tab-btn" onclick="switchTab('entries')">📝 知识条目 (<span id="entryCount">0</span>)</button>
+            </div>
+            
+            <div id="productsTab" class="tab-content active">
+                <div class="results-container" id="productResults">
+                    <div class="empty-state">
+                        <h3>请输入关键词搜索</h3>
+                        <p>搜索产品后可以编辑或删除</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="entriesTab" class="tab-content">
+                <div class="results-container" id="entryResults">
+                    <div class="empty-state">
+                        <h3>请输入关键词搜索</h3>
+                        <p>搜索知识条目后可以编辑或删除</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="message" class="message" style="display:none;"></div>
+        </div>
+    </div>
+    
+    <div class="edit-modal" id="editModal" onclick="closeEditModal(event)">
+        <div class="edit-modal-content" onclick="event.stopPropagation()">
+            <div class="edit-modal-header">
+                <h3 id="editModalTitle">编辑</h3>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="edit-modal-body" id="editModalBody">
+            </div>
+        </div>
+    </div>
+    
+    <div class="confirm-modal" id="confirmModal">
+        <div class="confirm-modal-content">
+            <h3>⚠️ 确认删除</h3>
+            <p id="confirmMessage">确定要删除这个项目吗？此操作不可撤销。</p>
+            <div class="btn-group">
+                <button class="btn-secondary" onclick="closeConfirmModal()">取消</button>
+                <button class="btn-danger" id="confirmDeleteBtn">确认删除</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentEditId = null;
+        let currentEditType = null;
+        let deleteCallback = null;
+        
+        document.getElementById('searchMode').addEventListener('change', function() {
+            const fieldGroup = document.getElementById('keywordFieldGroup');
+            fieldGroup.style.display = this.value === 'keyword' ? '' : 'none';
+        });
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tab === 'products') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('productsTab').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('entriesTab').classList.add('active');
+            }
+        }
+        
+        async function searchItems() {
+            const query = document.getElementById('searchQuery').value.trim();
+            const searchType = document.getElementById('searchType').value;
+            const searchMode = document.getElementById('searchMode').value;
+            const keywordField = document.getElementById('keywordField').value;
+            
+            if (!query) {
+                showMessage('请输入搜索关键词', 'error');
+                return;
+            }
+            
+            const productResults = document.getElementById('productResults');
+            const entryResults = document.getElementById('entryResults');
+            
+            productResults.innerHTML = '<div class="loading">正在搜索...</div>';
+            entryResults.innerHTML = '<div class="loading">正在搜索...</div>';
+            
+            try {
+                const requestBody = {
+                    query: query,
+                    top_k: 50,
+                    search_mode: searchMode,
+                    search_type: searchType
+                };
+                if (searchMode === 'keyword' && keywordField) {
+                    requestBody.keyword_field = keywordField;
+                }
+
+                const response = await fetch('/api/v1/knowledge/search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(requestBody)
+                });
+                
+                const result = await response.json();
+                const data = result.data || {};
+                const results = data.results || [];
+                
+                const products = results.filter(r => r.category || r.brand || r.reference_price);
+                const entries = results.filter(r => !r.category && !r.brand && !r.reference_price);
+                
+                document.getElementById('productCount').textContent = products.length;
+                document.getElementById('entryCount').textContent = entries.length;
+                
+                renderProductResults(products);
+                renderEntryResults(entries);
+                
+            } catch (error) {
+                showMessage('搜索失败: ' + error.message, 'error');
+                productResults.innerHTML = '<div class="empty-state"><h3>搜索失败</h3></div>';
+                entryResults.innerHTML = '<div class="empty-state"><h3>搜索失败</h3></div>';
+            }
+        }
+        
+        function renderProductResults(products) {
+            const container = document.getElementById('productResults');
+            
+            if (products.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>未找到产品</h3><p>尝试其他关键词</p></div>';
+                return;
+            }
+            
+            let html = '';
+            products.forEach(product => {
+                const tags = (product.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+                
+                html += `
+                <div class="result-item">
+                    <div class="item-header">
+                        <span class="item-title">${product.name || '未知产品'}</span>
+                        <span style="color: #e74c3c; font-weight: bold;">参考价 ¥${product.reference_price || 0}</span>
+                    </div>
+                    <div class="item-meta">
+                        <span>🏷️ ${product.brand || '未知品牌'}</span>
+                        <span>📂 ${product.category || '未分类'}</span>
+                        <span>🎯 ${product.efficacy || '无'}</span>
+                    </div>
+                    <div class="item-actions">
+                        <button onclick="editProduct('${product.id}')">✏️ 编辑</button>
+                        <button class="btn-danger" onclick="confirmDelete('product', '${product.id}', '${product.name}')">🗑️ 删除</button>
+                    </div>
+                    ${tags ? `<div style="margin-top: 10px;">${tags}</div>` : ''}
+                </div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function renderEntryResults(entries) {
+            const container = document.getElementById('entryResults');
+            
+            if (entries.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>未找到知识条目</h3><p>尝试其他关键词</p></div>';
+                return;
+            }
+            
+            let html = '';
+            entries.forEach(entry => {
+                const tags = (entry.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+                
+                html += `
+                <div class="result-item">
+                    <div class="item-header">
+                        <span class="item-title">${entry.title || '无标题'}</span>
+                    </div>
+                    <div class="item-meta">
+                        <span>🏷️ ${entry.topic || '未知主题'}</span>
+                        <span>📚 ${entry.layer || '未知层级'}</span>
+                    </div>
+                    <div style="color: #6c757d; font-size: 0.9em; margin-bottom: 10px;">
+                        ${(entry.content || '').substring(0, 150)}...
+                    </div>
+                    <div class="item-actions">
+                        <button onclick="editEntry('${entry.id}')">✏️ 编辑</button>
+                        <button class="btn-danger" onclick="confirmDelete('entry', '${entry.id}', '${entry.title}')">🗑️ 删除</button>
+                    </div>
+                    ${tags ? `<div style="margin-top: 10px;">${tags}</div>` : ''}
+                </div>`;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        async function editProduct(productId) {
+            currentEditId = productId;
+            currentEditType = 'product';
+            
+            try {
+                const response = await fetch(`/api/v1/knowledge/product/${productId}`);
+                const result = await response.json();
+                const product = result.data;
+                
+                if (!product) {
+                    showMessage('产品不存在', 'error');
+                    return;
+                }
+                
+                document.getElementById('editModalTitle').textContent = '编辑产品';
+                document.getElementById('editModalBody').innerHTML = `
+                    <form id="editForm">
+                        <input type="hidden" id="editId" value="${product.id}">
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>产品名称 *</label>
+                                <input type="text" id="editName" value="${product.name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>品牌</label>
+                                <input type="text" id="editBrand" value="${product.brand || ''}">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>分类</label>
+                                <input type="text" id="editCategory" value="${product.category || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>参考价</label>
+                                <input type="number" id="editPrice" value="${product.reference_price || 0}">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>功效</label>
+                                <input type="text" id="editEfficacy" value="${product.efficacy || ''}">
+                            </div>
+                            <div class="form-group">
+                                <label>适用肤质</label>
+                                <input type="text" id="editSkin" value="${product.applicable_skin || ''}">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>成分</label>
+                            <textarea id="editIngredients">${product.ingredients || ''}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>使用方法</label>
+                            <textarea id="editUsage">${product.usage || ''}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>产品描述</label>
+                            <textarea id="editDescription" style="min-height: 150px;">${product.description || ''}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>标签 (逗号分隔)</label>
+                            <input type="text" id="editTags" value="${(product.tags || []).join(', ')}">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="closeEditModal()">取消</button>
+                            <button type="button" class="btn-success" onclick="saveProduct()">💾 保存</button>
+                        </div>
+                    </form>
+                `;
+                
+                document.getElementById('editModal').classList.add('show');
+                
+            } catch (error) {
+                showMessage('获取产品详情失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function editEntry(entryId) {
+            currentEditId = entryId;
+            currentEditType = 'entry';
+            
+            try {
+                const response = await fetch(`/api/v1/knowledge/entry/${entryId}`);
+                const result = await response.json();
+                const entry = result.data;
+                
+                if (!entry) {
+                    showMessage('知识条目不存在', 'error');
+                    return;
+                }
+                
+                document.getElementById('editModalTitle').textContent = '编辑知识条目';
+                document.getElementById('editModalBody').innerHTML = `
+                    <form id="editForm">
+                        <input type="hidden" id="editId" value="${entry.id}">
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>标题 *</label>
+                                <input type="text" id="editTitle" value="${entry.title || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>主题</label>
+                                <input type="text" id="editTopic" value="${entry.topic || ''}">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>层级</label>
+                                <select id="editLayer">
+                                    <option value="general" ${entry.layer === 'general' ? 'selected' : ''}>通用知识</option>
+                                    <option value="specific" ${entry.layer === 'specific' ? 'selected' : ''}>专业知识</option>
+                                    <option value="expert" ${entry.layer === 'expert' ? 'selected' : ''}>专家知识</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>来源URL</label>
+                                <input type="text" id="editSourceUrl" value="${entry.source_url || ''}">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>内容 *</label>
+                            <textarea id="editContent" style="min-height: 200px;" required>${entry.content || ''}</textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>标签 (逗号分隔)</label>
+                            <input type="text" id="editTags" value="${(entry.tags || []).join(', ')}">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="closeEditModal()">取消</button>
+                            <button type="button" class="btn-success" onclick="saveEntry()">💾 保存</button>
+                        </div>
+                    </form>
+                `;
+                
+                document.getElementById('editModal').classList.add('show');
+                
+            } catch (error) {
+                showMessage('获取知识条目详情失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function saveProduct() {
+            const productId = document.getElementById('editId').value;
+            
+            const productData = {
+                name: document.getElementById('editName').value,
+                brand: document.getElementById('editBrand').value,
+                category: document.getElementById('editCategory').value,
+                reference_price: parseFloat(document.getElementById('editPrice').value) || 0,
+                efficacy: document.getElementById('editEfficacy').value,
+                applicable_skin: document.getElementById('editSkin').value,
+                ingredients: document.getElementById('editIngredients').value,
+                usage: document.getElementById('editUsage').value,
+                description: document.getElementById('editDescription').value,
+                tags: document.getElementById('editTags').value.split(',').map(t => t.trim()).filter(t => t)
+            };
+            
+            try {
+                const response = await fetch(`/api/v1/knowledge/product/${productId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(productData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.msg === '更新成功') {
+                    showMessage('产品更新成功！', 'success');
+                    closeEditModal();
+                    searchItems();
+                } else {
+                    showMessage('更新失败: ' + result.msg, 'error');
+                }
+            } catch (error) {
+                showMessage('更新失败: ' + error.message, 'error');
+            }
+        }
+        
+        async function saveEntry() {
+            const entryId = document.getElementById('editId').value;
+            
+            const entryData = {
+                title: document.getElementById('editTitle').value,
+                topic: document.getElementById('editTopic').value,
+                layer: document.getElementById('editLayer').value,
+                source_url: document.getElementById('editSourceUrl').value,
+                content: document.getElementById('editContent').value,
+                tags: document.getElementById('editTags').value.split(',').map(t => t.trim()).filter(t => t)
+            };
+            
+            try {
+                const response = await fetch(`/api/v1/knowledge/entry/${entryId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(entryData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.msg === '更新成功') {
+                    showMessage('知识条目更新成功！', 'success');
+                    closeEditModal();
+                    searchItems();
+                } else {
+                    showMessage('更新失败: ' + result.msg, 'error');
+                }
+            } catch (error) {
+                showMessage('更新失败: ' + error.message, 'error');
+            }
+        }
+        
+        function confirmDelete(type, id, name) {
+            currentEditId = id;
+            currentEditType = type;
+            
+            document.getElementById('confirmMessage').textContent = `确定要删除 "${name}" 吗？此操作不可撤销。`;
+            document.getElementById('confirmDeleteBtn').onclick = executeDelete;
+            document.getElementById('confirmModal').classList.add('show');
+        }
+        
+        async function executeDelete() {
+            const url = currentEditType === 'product' 
+                ? `/api/v1/knowledge/product/${currentEditId}`
+                : `/api/v1/knowledge/entry/${currentEditId}`;
+            
+            try {
+                const response = await fetch(url, {method: 'DELETE'});
+                const result = await response.json();
+                
+                if (result.msg === '删除成功') {
+                    showMessage('删除成功！', 'success');
+                    closeConfirmModal();
+                    searchItems();
+                } else {
+                    showMessage('删除失败: ' + result.msg, 'error');
+                }
+            } catch (error) {
+                showMessage('删除失败: ' + error.message, 'error');
+            }
+        }
+        
+        function closeEditModal(event) {
+            if (event && event.target !== document.getElementById('editModal')) {
+                return;
+            }
+            document.getElementById('editModal').classList.remove('show');
+        }
+        
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('show');
+        }
+        
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = 'message ' + type;
+            msgDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                msgDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchItems();
+            }
+        });
+    </script>
+</body>
+</html>

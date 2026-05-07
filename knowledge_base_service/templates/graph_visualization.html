@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>知识图谱可视化</title>
+    <meta charset="utf-8">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .control-group input, .control-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .control-group button {
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .control-group button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .main-container {
+            display: flex;
+            height: calc(100vh - 180px);
+        }
+        
+        .graph-container {
+            flex: 1;
+            background: white;
+            position: relative;
+        }
+        
+        #graph {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-left: 1px solid #eee;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .sidebar h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+        
+        .stats-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .stats-card h3 {
+            font-size: 1em;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .stats-label {
+            color: #666;
+        }
+        
+        .stats-value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .legend {
+            margin-top: 20px;
+        }
+        
+        .legend h3 {
+            font-size: 1em;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+        }
+        
+        .node-info {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .node-info h3 {
+            font-size: 1em;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .node-info p {
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>知识图谱可视化</h1>
+        <p>交互式查看实体和关系网络</p>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>最大节点数:</label>
+            <input type="number" id="maxNodes" value="100" min="10" max="500">
+        </div>
+        
+        <div class="control-group">
+            <label>最大关系数:</label>
+            <input type="number" id="maxRelations" value="200" min="10" max="1000">
+        </div>
+        
+        <div class="control-group">
+            <label>实体类型:</label>
+            <select id="entityType">
+                <option value="">全部</option>
+                <option value="产品/服务">产品/服务</option>
+                <option value="成分/原料">成分/原料</option>
+                <option value="功效/作用">功效/作用</option>
+                <option value="品牌/厂商">品牌/厂商</option>
+                <option value="适用对象">适用对象</option>
+                <option value="分类/类别">分类/类别</option>
+                <option value="数值/参数">数值/参数</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button onclick="loadGraph()">加载图谱</button>
+            <button onclick="resetView()">重置视图</button>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <div class="graph-container">
+            <div id="graph"></div>
+            <div id="loading" class="loading">
+                <div class="loading-spinner"></div>
+                <p>加载中...</p>
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <h2>图谱统计</h2>
+            
+            <div class="stats-card">
+                <h3>总体统计</h3>
+                <div class="stats-item">
+                    <span class="stats-label">总实体数:</span>
+                    <span class="stats-value" id="totalEntities">-</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">总关系数:</span>
+                    <span class="stats-value" id="totalRelations">-</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">显示节点:</span>
+                    <span class="stats-value" id="displayedNodes">-</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">显示边:</span>
+                    <span class="stats-value" id="displayedEdges">-</span>
+                </div>
+            </div>
+            
+            <div class="legend">
+                <h3>实体类型图例</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF6B6B;"></div>
+                    <span>产品/服务</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4ECDC4;"></div>
+                    <span>成分/原料</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #45B7D1;"></div>
+                    <span>功效/作用</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFA07A;"></div>
+                    <span>品牌/厂商</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #98D8C8;"></div>
+                    <span>适用对象</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #F7DC6F;"></div>
+                    <span>分类/类别</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #BB8FCE;"></div>
+                    <span>数值/参数</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #85C1E9;"></div>
+                    <span>其他</span>
+                </div>
+            </div>
+            
+            <div id="nodeInfo" class="node-info" style="display: none;">
+                <h3>节点详情</h3>
+                <p><strong>名称:</strong> <span id="nodeName"></span></p>
+                <p><strong>类型:</strong> <span id="nodeType"></span></p>
+                <p><strong>ID:</strong> <span id="nodeId"></span></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let network = null;
+        let nodes = null;
+        let edges = null;
+        
+        async function loadGraph() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            
+            try {
+                const maxNodes = document.getElementById('maxNodes').value;
+                const maxRelations = document.getElementById('maxRelations').value;
+                const entityType = document.getElementById('entityType').value;
+                
+                const params = new URLSearchParams({
+                    max_nodes: maxNodes,
+                    max_relations: maxRelations,
+                    entity_type: entityType
+                });
+                
+                const response = await fetch(`/api/v1/graph/visualization_data?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // 更新统计信息
+                document.getElementById('totalEntities').textContent = data.stats.total_entities;
+                document.getElementById('totalRelations').textContent = data.stats.total_relations;
+                document.getElementById('displayedNodes').textContent = data.stats.displayed_nodes;
+                document.getElementById('displayedEdges').textContent = data.stats.displayed_edges;
+                
+                // 创建 Vis.js 数据集
+                nodes = new vis.DataSet(data.nodes);
+                edges = new vis.DataSet(data.edges);
+                
+                // 创建网络图
+                const container = document.getElementById('graph');
+                const graphData = { nodes: nodes, edges: edges };
+                
+                const options = {
+                    nodes: {
+                        shape: 'dot',
+                        scaling: {
+                            min: 10,
+                            max: 30
+                        },
+                        font: {
+                            size: 14,
+                            face: 'Microsoft YaHei'
+                        }
+                    },
+                    edges: {
+                        smooth: {
+                            type: 'continuous'
+                        },
+                        arrows: {
+                            to: { enabled: true, scaleFactor: 0.5 }
+                        }
+                    },
+                    physics: {
+                        stabilization: {
+                            iterations: 200
+                        },
+                        barnesHut: {
+                            gravitationalConstant: -2000,
+                            springConstant: 0.04,
+                            springLength: 100
+                        }
+                    },
+                    interaction: {
+                        hover: true,
+                        tooltipDelay: 200,
+                        zoomView: true
+                    }
+                };
+                
+                network = new vis.Network(container, graphData, options);
+                
+                // 点击节点事件
+                network.on('click', function(params) {
+                    if (params.nodes.length > 0) {
+                        const nodeId = params.nodes[0];
+                        const node = nodes.get(nodeId);
+                        
+                        document.getElementById('nodeName').textContent = node.label;
+                        document.getElementById('nodeType').textContent = node.entity_type;
+                        document.getElementById('nodeId').textContent = node.entity_id;
+                        document.getElementById('nodeInfo').style.display = 'block';
+                    } else {
+                        document.getElementById('nodeInfo').style.display = 'none';
+                    }
+                });
+                
+                loading.style.display = 'none';
+                
+            } catch (error) {
+                loading.innerHTML = `<div class="error-message">加载失败: ${error.message}</div>`;
+                console.error('Error loading graph:', error);
+            }
+        }
+        
+        function resetView() {
+            if (network) {
+                network.fit({
+                    animation: {
+                        duration: 500,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+            }
+        }
+        
+        // 页面加载时自动加载图谱
+        window.onload = loadGraph;
+    </script>
+</body>
+</html>

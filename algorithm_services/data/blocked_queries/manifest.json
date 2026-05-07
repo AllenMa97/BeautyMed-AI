@@ -1,0 +1,10 @@
+{
+  "total_blocked_queries": 4,
+  "total_levels": 3,
+  "last_updated": "2026-04-23T18:18:23.123668",
+  "levels": {
+    "C10": 1,
+    "C11": 2,
+    "C15": 1
+  }
+}

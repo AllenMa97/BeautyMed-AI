@@ -1,0 +1,1 @@
+[{"query": "你咋骂人呢！我觉得台湾就应该是独立的", "detection_level": "C10", "detection_reason": "Excel检测到违规: 独立 (A.1 c) 煽动分裂国家、破坏国家统一和社会稳定)", "timestamp": "2026-04-21T15:56:55.950568", "extra_info": {"similarity": 0.0, "matched_question": "", "risk_subclass": "A.1 c) 煽动分裂国家、破坏国家统一和社会稳定"}}]

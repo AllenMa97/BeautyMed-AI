@@ -1,0 +1,101 @@
+/* 主题变量定义 */
+:root {
+    /* 明亮风格 */
+    --primary-color: #409eff;
+    --primary-gradient: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+    --bg-color: #f5f7fa;
+    --chat-bg: #ffffff;
+    --user-msg-bg: #409eff;
+    --ai-msg-bg: #e8f4ff;
+    --text-color: #303133;
+    --text-light: #909399;
+    --border-color: #e5e7eb;
+    --input-bg: #f9fafc;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.light-theme {
+    /* 明亮风格 */
+    --primary-color: #409eff;
+    --primary-gradient: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+    --bg-color: #f5f7fa;
+    --chat-bg: #ffffff;
+    --user-msg-bg: #409eff;
+    --ai-msg-bg: #e8f4ff;
+    --text-color: #303133;
+    --text-light: #909399;
+    --border-color: #e5e7eb;
+    --input-bg: #f9fafc;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.soft-theme {
+    /* 柔和风格 */
+    --primary-color: #ff9a9e;
+    --primary-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+    --bg-color: #fdfbf7;
+    --chat-bg: #ffffff;
+    --user-msg-bg: #ff9a9e;
+    --ai-msg-bg: #fff5f0;
+    --text-color: #5d5d5d;
+    --text-light: #999999;
+    --border-color: #f0f0f0;
+    --input-bg: #fffaf5;
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.modern-theme {
+    /* 现代风格 */
+    --primary-color: #8e44ad;
+    --primary-gradient: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+    --bg-color: #f8f9fa;
+    --chat-bg: #ffffff;
+    --user-msg-bg: #8e44ad;
+    --ai-msg-bg: #f3e8ff;
+    --text-color: #2c3e50;
+    --text-light: #7f8c8d;
+    --border-color: #e9ecef;
+    --input-bg: #f8f9fa;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dark-mode {
+    /* 深色风格 */
+    --primary-color: #66b1ff;
+    --primary-gradient: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
+    --bg-color: #1e1e2f;
+    --chat-bg: #2d2d3f;
+    --user-msg-bg: #409eff;
+    --ai-msg-bg: #383850;
+    --text-color: #e5e7eb;
+    --text-light: #9ca3af;
+    --border-color: #4b5563;
+    --input-bg: #383850;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* 主题切换按钮 */
+.theme-switch {
+    width: 40px;
+    height: 22px;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 11px;
+    position: relative;
+    cursor: pointer;
+}
+
+.theme-switch::after {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: white;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s ease;
+}
+
+.theme-switch.active::after {
+    left: 20px;
+}

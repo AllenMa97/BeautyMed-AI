@@ -1,0 +1,51 @@
+/* 重置样式 + 通用样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+    min-height: 100vh;
+    padding: 10px;
+    scroll-behavior: smooth;
+}
+
+/* 通用容器 */
+.chat-container {
+    max-width: 700px;
+    margin: 20px auto;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 40px);
+    max-height: 800px;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+/* 响应式基础 */
+@media (max-width: 480px) {
+    .chat-container {
+        height: calc(100vh - 20px);
+        margin: 10px auto;
+        border-radius: 12px;
+    }
+}

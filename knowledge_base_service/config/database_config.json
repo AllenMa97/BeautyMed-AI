@@ -1,0 +1,14 @@
+{
+  "current_database": "full",
+  "databases": {
+    "full": {
+      "type": "full",
+      "name": "完整产品库",
+      "description": "包含所有产品的完整数据库",
+      "created_at": "2026-04-15T16:03:35.991092",
+      "product_count": 0
+    }
+  },
+  "groups": {},
+  "brands": {}
+}
