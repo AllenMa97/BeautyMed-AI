@@ -165,18 +165,43 @@ async def read_root():
     </html>
     """
 
-# 修复404问题 - 专门处理前端路由的回退方案
-# 由于FastAPI路由匹配顺序问题，这里添加一个特殊的处理方式
-# 通过在应用启动时注册一个特殊的中间件来处理这些特定路由
-@app.get("/api/fix-frontend-routes", include_in_schema=False)
-async def fix_frontend_routes():
+# 最终修复：添加一个精确的404处理机制
+# 这个修复方案专门针对用户遇到的特定问题
+@app.exception_handler(404)
+async def custom_404_handler(request, exc):
     """
-    专门用于修复前端路由的占位路由
-    实际上这个路由不会被直接访问，但确保路由系统正确加载
+    自定义404处理器
+    专门处理前端路由的404情况
     """
-    return {"status": "ok"}
+    # 获取请求路径
+    path = request.url.path
+    
+    # 定义需要特殊处理的前端路由
+    frontend_routes = {
+        "/add_knowledge": "add_knowledge.html",
+        "/edit_knowledge": "edit_knowledge.html",
+        "/graph": "graph_visualization.html"
+    }
+    
+    # 如果是前端路由且模板存在，则返回模板
+    if path in frontend_routes:
+        try:
+            template_name = frontend_routes[path]
+            return _render_html(template_name, request=request)
+        except Exception as e:
+            logger.error(f"渲染模板 {template_name} 失败: {e}")
+            return HTMLResponse(content="<h1>页面未找到</h1>", status_code=404)
+    
+    # 对于其他404情况，返回标准404
+    return HTMLResponse(content="<h1>页面未找到</h1>", status_code=404)
 
+# 为了确保路由正确注册，添加一个调试信息
 if __name__ == "__main__":
+    print("=== 应用启动时的路由信息 ===")
+    for route in app.routes:
+        if hasattr(route, 'path'):
+            print(f"  路由: {route.path}")
+    
     import uvicorn
     logger.info("启动服务...")
     # host="0.0.0.0" 表示监听所有网络接口，允许外部访问

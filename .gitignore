@@ -1,0 +1,261 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# Environment Variables & Secrets
+*.env
+!.env.example
+!config/*.env.example
+!.env.example
+
+# Sensitive Files
+aliyun.key
+*.key
+*.pem
+*.crt
+credentials.json
+secrets.json
+
+# 离职交接文档（已转换为项目详述）
+YISIA项目离职交接文档.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+algorithm_services/logs/
+knowledge_base_service/logs/
+
+# Local Session Data
+# local_session_data/
+# algorithm_services/data/session_store.py
+# algorithm_services/data/vector_store.py
+
+# Data Files (Large) - 保留以支持功能执行
+# algorithm_services/data/embeddings/
+# algorithm_services/data/blocked_queries/
+# algorithm_services/data/question_bank_json/
+# knowledge_base_service/data/chunk_embeddings/
+# knowledge_base_service/data/chunks/
+# knowledge_base_service/data/query_cache/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Frontend Build (if any)
+frontend_services/dist/
+frontend_services/build/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary Files
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
+
+# Distribution / packaging
+.Python
+env/
+bin/
+include/
+share/python-wheels/
+*.egg-info/
+run/
+var/
+
+# PyBuilder
+target/
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath
+*.sage.py
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+# Secrets
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+service-account.json
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+logs/
+
+# Data
+data/*.json
+data/*.pkl
+data/*.db
+data/*.sqlite
+
+# Cache
+.cache/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.temp
+*.bak
+
+# Session - 保留以支持功能执行
+# session/
+# local_session_data/
+
+# Embeddings
+embeddings/
+vector_store/
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Misc
+*.log
+*.pid
+*.sock
