@@ -40,40 +40,69 @@ class EmbeddingStorage:
         return os.path.join(self.storage_path, f"{safe_name}.json")
 
     def _load_all_embeddings(self):
-        """加载所有已存储的embeddings"""
+        """加载所有已存储的embeddings（支持分割文件）"""
         os.makedirs(self.storage_path, exist_ok=True)
 
         if not os.path.exists(self.storage_path):
             return
 
         total_loaded = 0
+        
+        # 收集所有基础文件名（处理分割文件）
+        file_groups = {}
         for filename in os.listdir(self.storage_path):
             if not filename.endswith(".json"):
                 continue
+            
+            # 跳过 manifest 文件
+            if filename == "manifest.json":
+                continue
+            
+            # 处理分割文件：question_bank_C35_part1.json, question_bank_C35_part2.json
+            # 以及普通文件：question_bank_C35.json
+            if "_part" in filename:
+                # 分割文件：提取基础名
+                base_name = filename.rsplit("_part", 1)[0]
+                if base_name not in file_groups:
+                    file_groups[base_name] = []
+                file_groups[base_name].append(filename)
+            else:
+                # 普通文件
+                base_name = filename[:-5]  # 去掉 .json
+                if base_name not in file_groups:
+                    file_groups[base_name] = []
+                file_groups[base_name].append(filename)
+        
+        # 按组加载文件
+        for base_name, filenames in file_groups.items():
+            # 对分割文件按序号排序
+            if len(filenames) > 1:
+                filenames.sort()
+            
+            for filename in filenames:
+                filepath = os.path.join(self.storage_path, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
 
-            filepath = os.path.join(self.storage_path, filename)
-            try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
+                    count = 0
+                    for text, meta_data in data.items():
+                        if not isinstance(meta_data, dict):
+                            continue
+                        try:
+                            self.embeddings[text] = EmbeddingMeta(**meta_data)
+                            count += 1
+                        except Exception:
+                            continue
 
-                count = 0
-                for text, meta_data in data.items():
-                    if not isinstance(meta_data, dict):
-                        continue
-                    try:
-                        self.embeddings[text] = EmbeddingMeta(**meta_data)
-                        count += 1
-                    except Exception:
-                        continue
+                    total_loaded += count
+                    if count > 0:
+                        logger.info(f"[Embedding存储] 从 {filename} 加载了 {count} 个embeddings")
 
-                total_loaded += count
-                if count > 0:
-                    logger.info(f"[Embedding存储] 从 {filename} 加载了 {count} 个embeddings")
-
-            except json.JSONDecodeError as e:
-                logger.warning(f"[Embedding存储] 文件 {filename} JSON解析失败: {e}，跳过")
-            except Exception as e:
-                logger.warning(f"[Embedding存储] 加载文件 {filename} 失败: {e}，跳过")
+                except json.JSONDecodeError as e:
+                    logger.warning(f"[Embedding存储] 文件 {filename} JSON解析失败: {e}，跳过")
+                except Exception as e:
+                    logger.warning(f"[Embedding存储] 加载文件 {filename} 失败: {e}，跳过")
 
         logger.info(f"[Embedding存储] 总计加载了 {total_loaded} 个embeddings")
 
